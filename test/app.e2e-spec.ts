@@ -1,20 +1,29 @@
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import { DataSource, type Repository } from 'typeorm';
+import { initializeTransactionalContext } from 'typeorm-transactional';
 
 import { AppModule } from '../src/app.module';
+import { UserEntity } from '../src/modules/user/user.entity';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
   let accessToken: string;
+  let dataSource: DataSource;
+  let userRepository: Repository<UserEntity>;
 
   beforeAll(async () => {
+    initializeTransactionalContext();
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
+
+    dataSource = moduleFixture.get<DataSource>(DataSource);
+    userRepository = dataSource.getRepository(UserEntity);
   });
 
   it('/auth/register (POST)', () =>
@@ -46,5 +55,8 @@ describe('AuthController (e2e)', () => {
       .set({ Authorization: `Bearer ${accessToken}` })
       .expect(200));
 
-  afterAll(() => app.close());
+  afterAll(async () => {
+    await userRepository.delete({ email: 'john@smith.com' });
+    await app.close();
+  });
 });
