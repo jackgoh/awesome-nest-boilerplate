@@ -12,8 +12,8 @@ import {
   IsNumber,
   IsPositive,
   IsString,
-  IsUrl,
   IsUUID,
+  IsUrl,
   Max,
   MaxLength,
   Min,
@@ -22,6 +22,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+import { PositiveBigInt } from 'class-validator-extended';
 import { type Constructor } from '../types';
 import { ApiEnumProperty, ApiUUIDProperty } from './property.decorators';
 import {
@@ -37,6 +38,7 @@ import {
   IsPhoneNumber,
   IsTmpKey as IsTemporaryKey,
   IsUndefinable,
+  isHexDecimal,
 } from './validator.decorators';
 
 interface IFieldOptions {
@@ -475,5 +477,106 @@ export function DateFieldOptional(
   return applyDecorators(
     IsUndefinable(),
     DateField({ ...options, required: false }),
+  );
+}
+
+export function WalletAddressField(
+  options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+): PropertyDecorator {
+  const decorators = [
+    StringField({
+      toLowerCase: true,
+      maxLength: 42,
+      minLength: 42,
+      ...options,
+    }),
+    isHexDecimal,
+  ];
+
+  return applyDecorators(...decorators);
+}
+
+export function WalletAddressFieldOptional(
+  options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+): PropertyDecorator {
+  return applyDecorators(
+    IsUndefinable(),
+    WalletAddressField({ ...options, required: false }),
+  );
+}
+
+export function HashField(
+  options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+): PropertyDecorator {
+  const decorators = [
+    StringField({
+      toLowerCase: true,
+      maxLength: 66,
+      minLength: 66,
+      ...options,
+    }),
+    isHexDecimal,
+  ];
+
+  return applyDecorators(...decorators);
+}
+
+export function HashFieldOptional(
+  options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+): PropertyDecorator {
+  return applyDecorators(
+    IsUndefinable(),
+    HashField({ ...options, required: false }),
+  );
+}
+
+export function SignatureField(
+  options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+): PropertyDecorator {
+  const decorators = [
+    StringField({
+      toLowerCase: true,
+      maxLength: 132,
+      minLength: 132,
+      ...options,
+    }),
+    isHexDecimal,
+  ];
+
+  return applyDecorators(...decorators);
+}
+
+export function SignatureFieldOptional(
+  options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+): PropertyDecorator {
+  return applyDecorators(
+    IsUndefinable(),
+    SignatureField({ ...options, required: false }),
+  );
+}
+
+export function BigintField(
+  options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+): PropertyDecorator {
+  const decorators = [
+    StringField({ ...options }),
+    PositiveBigInt,
+    // Transform(
+    //   (param) => {
+    //     return BigInt(param.value);
+    //   },
+    //   { toClassOnly: true },
+    // ),
+  ];
+
+  return applyDecorators(...decorators);
+}
+
+export function BigintFieldOptional(
+  options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+): PropertyDecorator {
+  return applyDecorators(
+    IsUndefinable(),
+    BigintField({ ...options, required: false }),
   );
 }
