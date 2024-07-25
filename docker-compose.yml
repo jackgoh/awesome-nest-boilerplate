@@ -1,17 +1,17 @@
-version: "3"
+version: '3'
 services:
-  awesome-nest-db:
+  postgres:
     image: postgres
-    container_name: awesome-nest-db
     restart: always
     environment:
+      POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: postgres
-      TZ: 'GMT'
-      PGTZ: 'GMT'
+      TZ: 'Asia/Kuala_Lumpur'
+      PGTZ: 'Asia/Kuala_Lumpur'
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
-      - awesome-nest-db-vol:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
       - type: bind
         source: ./init-data.sh
         target: /docker-entrypoint-initdb.d/init-data.sh
@@ -19,7 +19,17 @@ services:
     env_file:
       - .env
 
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - /path/to/local/data:/root/redis
+      - /path/to/local/redis.conf:/usr/local/etc/redis/redis.conf
+    env_file:
+      - .env
+
 volumes:
-  awesome-nest-db-vol:
+  pgdata:
     driver: local
-  

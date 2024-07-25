@@ -57,6 +57,27 @@ export function IsTmpKey(
   };
 }
 
+export function isHexDecimal(
+  validationOptions?: ValidationOptions,
+): PropertyDecorator {
+  return (object, propertyName) => {
+    registerDecorator({
+      propertyName: propertyName as string,
+      name: 'HexDecimal',
+      target: object.constructor,
+      options: validationOptions,
+      validator: {
+        validate(value: string): boolean {
+          return isString(value) && value.substring(0, 2) == '0x';
+        },
+        defaultMessage(): string {
+          return 'error.invalidHexDecimal';
+        },
+      },
+    });
+  };
+}
+
 export function IsUndefinable(options?: ValidationOptions): PropertyDecorator {
   return ValidateIf((_obj, value) => value !== undefined, options);
 }
