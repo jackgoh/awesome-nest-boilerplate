@@ -3,6 +3,7 @@ import {
   Param,
   ParseUUIDPipe,
   type PipeTransform,
+  SetMetadata,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -23,6 +24,7 @@ export function Auth(
   const isPublicRoute = options?.public;
 
   return applyDecorators(
+    SetMetadata('roles', roles),
     Roles(roles),
     UseGuards(AuthGuard({ public: isPublicRoute }), RolesGuard),
     ApiBearerAuth(),
