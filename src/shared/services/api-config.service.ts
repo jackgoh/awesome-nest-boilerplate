@@ -5,7 +5,7 @@ import { type TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { isNil } from 'lodash';
 import { default as parse, type Units } from 'parse-duration';
 
-import { UserSubscriber } from '../../entity-subscribers/user-subscriber';
+import { Address, Hex, isAddress, isHex } from 'viem';
 import { SnakeNamingStrategy } from '../../snake-naming.strategy';
 
 @Injectable()
@@ -22,6 +22,10 @@ export class ApiConfigService {
 
   get isTest(): boolean {
     return this.nodeEnv === 'test';
+  }
+
+  get isLocalContractTest(): boolean {
+    return this.nodeEnv === 'localContractTest';
   }
 
   private getNumber(key: string): number {
@@ -96,7 +100,7 @@ export class ApiConfigService {
       username: this.getString('DB_USERNAME'),
       password: this.getString('DB_PASSWORD'),
       database: this.getString('DB_DATABASE'),
-      subscribers: [UserSubscriber],
+      //   subscribers: [UserV2Subscriber],
       migrationsRun: true,
       logging: this.getBoolean('ENABLE_ORM_LOGS'),
       namingStrategy: new SnakeNamingStrategy(),
@@ -137,7 +141,44 @@ export class ApiConfigService {
   get appConfig() {
     return {
       port: this.getString('PORT'),
+      timezone: this.getString('TIMEZONE'),
     };
+  }
+
+  get nodeRealConfig() {
+    return {
+      key: this.getString('NODEREAL_KEY'),
+    };
+  }
+
+  get aesSecretKey() {
+    return this.getString('AES_SECRET_KEY');
+  }
+
+  get localContract() {
+    const usdt_contract = this.getString('LOCAL_USDT_CONTRACT');
+    const multicall_contract = this.getString('LOCAL_MULTICALL_CONTRACT');
+
+    if (isAddress(usdt_contract) && isAddress(multicall_contract))
+      return {
+        usdt_contract,
+        multicall_contract,
+      };
+
+    throw new Error('Invalid local contract addresses');
+  }
+
+  get testWallet() {
+    const wallet_address = this.getString('TEST_WALLET_ADDRESS');
+    const wallet_key = this.getString('TEST_WALLET_KEY');
+
+    if (isAddress(wallet_address) && isHex(wallet_key))
+      return {
+        wallet_address: wallet_address as Address,
+        wallet_key: wallet_key as Hex,
+      };
+
+    throw new Error('Invalid wallet .env variables set');
   }
 
   private get(key: string): string {

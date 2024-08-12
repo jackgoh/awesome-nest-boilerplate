@@ -1,8 +1,9 @@
 import 'source-map-support/register';
 
 import { compact, map } from 'lodash';
-import { Brackets, type ObjectLiteral, SelectQueryBuilder } from 'typeorm';
+import { Brackets, SelectQueryBuilder, type ObjectLiteral } from 'typeorm';
 
+import { Cache, Milliseconds } from 'cache-manager';
 import { type AbstractEntity } from './common/abstract.entity';
 import { type AbstractDto } from './common/dto/abstract.dto';
 import { PageDto } from './common/dto/page.dto';
@@ -25,6 +26,21 @@ declare global {
       // FIXME make option type visible from entity
       options?: unknown,
     ): PageDto<Dto>;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  interface BigInt {
+    toBigInt(this: any): bigint;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  interface String {
+    toBigInt(this: any): bigint;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  interface Number {
+    toBigInt(this: any): bigint;
   }
 }
 
@@ -107,6 +123,18 @@ Array.prototype.toPageDto = function (
   return new PageDto(this.toDtos(options), pageMetaDto);
 };
 
+BigInt.prototype.toBigInt = function () {
+  return BigInt(this);
+};
+
+String.prototype.toBigInt = function () {
+  return BigInt(this);
+};
+
+Number.prototype.toBigInt = function () {
+  return BigInt(this);
+};
+
 SelectQueryBuilder.prototype.searchByString = function (
   q,
   columnNames,
@@ -159,3 +187,13 @@ SelectQueryBuilder.prototype.paginate = async function (
 
   return [entities, pageMetaDto];
 };
+
+declare module 'cache-manager' {
+  export type CacheRedis = Omit<Cache, 'set'> & {
+    set: (
+      key: string,
+      value: unknown,
+      options?: { ttl: Milliseconds },
+    ) => Promise<void>;
+  };
+}

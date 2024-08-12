@@ -16,6 +16,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { initializeTransactionalContext } from 'typeorm-transactional';
 
+import { useContainer } from 'class-validator';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './filters/bad-request.filter';
 import { QueryFailedFilter } from './filters/query-failed.filter';
@@ -39,6 +40,8 @@ const bootstrap = async () => {
     defaultVersion: '1',
     type: VersioningType.URI,
   });
+
+  useContainer(app.select(AppModule), { fallbackOnErrors: true }); // allow for Dependency Injection inside validator
 
   const reflector = app.get(Reflector);
 
