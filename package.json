@@ -9,7 +9,7 @@
     "build:prod": "tsc -p tsconfig.build.json",
     "start:dev": "ts-node src/main.ts",
     "start:prod": "node dist/main.js",
-    "typeorm": "typeorm-ts-node-esm",
+    "typeorm": "yarn run ts-node node_modules/typeorm/cli.js",
     "migration:generate": "yarn run typeorm migration:generate -d ormconfig",
     "migration:create": "yarn run typeorm migration:create -d ormconfig",
     "migration:run": "yarn run typeorm migration:run -d ormconfig",

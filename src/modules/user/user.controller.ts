@@ -1,16 +1,10 @@
-import {
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Query,
-  ValidationPipe,
-} from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { PageDto } from '../../common/dto/page.dto';
 import { RoleType } from '../../constants';
 import { ApiPageOkResponse, Auth, UUIDParam } from '../../decorators';
+import { UserNotFoundException } from '../../exceptions';
 import { UserDto } from './dtos/user.dto';
 import { UsersPageOptionsDto } from './dtos/users-page-options.dto';
 import { UserService } from './user.service';
@@ -28,10 +22,10 @@ export class UserController {
     type: PageDto,
   })
   getUsers(
-    @Query(new ValidationPipe({ transform: true }))
+    @Query()
     pageOptionsDto: UsersPageOptionsDto,
   ): Promise<PageDto<UserDto>> {
-    return this.userService.getUsers(pageOptionsDto);
+    return this.userService.paginate(pageOptionsDto);
   }
 
   @Get(':id')
@@ -42,7 +36,16 @@ export class UserController {
     description: 'Get users list',
     type: UserDto,
   })
-  getUser(@UUIDParam('id') userId: Uuid): Promise<UserDto> {
-    return this.userService.getUser(userId);
+  async getUser(@UUIDParam('id') userId: Uuid): Promise<UserDto> {
+    const foundData = await this.userService.findOneOrThrowException(
+      {
+        findData: {
+          id: userId,
+        },
+      },
+      new UserNotFoundException(),
+    );
+
+    return foundData.toDto();
   }
 }

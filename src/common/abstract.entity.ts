@@ -22,12 +22,12 @@ export abstract class AbstractEntity<
   id!: Uuid;
 
   @CreateDateColumn({
-    type: 'timestamp',
+    type: 'timestamp with time zone',
   })
   createdAt!: Date;
 
   @UpdateDateColumn({
-    type: 'timestamp',
+    type: 'timestamp with time zone',
   })
   updatedAt!: Date;
 

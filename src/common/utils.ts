@@ -45,3 +45,19 @@ export function getVariableName<TResult>(
 
   return memberParts.at(-1);
 }
+
+export function assignDefined<
+  K extends keyof T & keyof U, // Add this to define K
+  V extends keyof T & keyof U, // Add this to define K
+  T extends Record<K, V>,
+  U extends Record<K, V>,
+>(target: T, source: U): void {
+  for (const key of Object.keys(source)) {
+    const value = source[key];
+
+    // Ensure the value is not undefined, null, or an empty object
+    if (value !== undefined) {
+      target[key as keyof T] = value as T[keyof T];
+    }
+  }
+}

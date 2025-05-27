@@ -1,11 +1,12 @@
 import { Order } from '../../constants';
 import {
+  DateFieldOptional,
   EnumFieldOptional,
   NumberFieldOptional,
   StringFieldOptional,
 } from '../../decorators';
 
-export class PageOptionsDto {
+export class BasePageOptionsDto {
   @EnumFieldOptional(() => Order, {
     default: Order.ASC,
   })
@@ -32,4 +33,18 @@ export class PageOptionsDto {
 
   @StringFieldOptional()
   readonly q?: string;
+}
+
+export class PageOptionsDto extends BasePageOptionsDto {
+  @DateFieldOptional()
+  readonly createdAtStart?: Date;
+
+  @DateFieldOptional()
+  readonly createdAtEnd?: Date;
+
+  @DateFieldOptional()
+  readonly updatedAtStart?: Date;
+
+  @DateFieldOptional()
+  readonly updatedAtEnd?: Date;
 }
