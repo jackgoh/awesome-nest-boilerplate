@@ -23,12 +23,10 @@
     "noUnusedLocals": true,
     "strict": true,
     "moduleResolution": "node",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "**/*.spec.ts"
-  ]
+  "include": ["src/**/*", "**/*.spec.ts", "test/**/*.ts"],
+  "exclude": ["node_modules"]
 }
