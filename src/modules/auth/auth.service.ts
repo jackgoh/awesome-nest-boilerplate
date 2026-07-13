@@ -166,7 +166,7 @@ export class AuthService {
     return user;
   }
 
-  async logout(userId: Uuid, token: string): Promise<void> {
+  async logout(userId: Uuid, sessionId: string, token: string): Promise<void> {
     let payload: unknown;
 
     try {
@@ -177,7 +177,11 @@ export class AuthService {
 
     const claimsResult = refreshTokenClaimsSchema.safeParse(payload);
 
-    if (!claimsResult.success || claimsResult.data.sub !== userId) {
+    if (
+      !claimsResult.success ||
+      claimsResult.data.sub !== userId ||
+      claimsResult.data.sid !== sessionId
+    ) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 

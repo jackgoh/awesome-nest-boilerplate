@@ -45,6 +45,10 @@ describe('AuthController', () => {
     roles: [mockRole],
     directPermissions: [],
     computedPermissions: [],
+    authentication: {
+      accessTokenId: '0428b4df-e191-4c0d-b5aa-95cc43eab8aa',
+      sessionId: 'ab8f0de7-91ee-4994-b811-79651e28217a',
+    },
     fullName: 'John Doe',
     settings: undefined,
     createdAt: new Date(),
@@ -213,6 +217,7 @@ describe('AuthController', () => {
       ).resolves.toEqual({ message: 'Successfully logged out' });
       expect(authService.logout).toHaveBeenCalledWith(
         mockUser.id,
+        mockUser.authentication.sessionId,
         'current-refresh-token',
       );
     });

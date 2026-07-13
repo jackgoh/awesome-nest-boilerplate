@@ -46,7 +46,7 @@ refresh-token family shared by its access and refresh tokens.
 Each login creates a refresh-token family. Rotation compares and replaces the
 active token through one Redis script. A replayed token revokes every active
 token in its family. Logout also validates that the refresh-token subject
-matches the authenticated access-token subject before revoking the family.
+and session match the authenticated access token before revoking the family.
 
 ## Persistence and transactions
 

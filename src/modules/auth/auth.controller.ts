@@ -80,7 +80,11 @@ export class AuthController {
   ): Promise<{
     message: string;
   }> {
-    await this.authService.logout(user.id, refreshTokenDto.refreshToken);
+    await this.authService.logout(
+      user.id,
+      user.authentication.sessionId,
+      refreshTokenDto.refreshToken,
+    );
 
     return {
       message: 'Successfully logged out',

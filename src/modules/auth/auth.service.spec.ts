@@ -150,13 +150,24 @@ describe('AuthService', () => {
     const authenticatedUserId = 'f3f1c524-5de4-489f-b62e-f337008169bb' as Uuid;
 
     await expect(
-      service.logout(authenticatedUserId, 'refresh-token'),
+      service.logout(authenticatedUserId, currentClaims.sid, 'refresh-token'),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(cacheService.revokeRefreshTokenFamily).not.toHaveBeenCalled();
+  });
+
+  it('rejects logout when the refresh token belongs to another session', async () => {
+    await expect(
+      service.logout(
+        userId,
+        'c1b9d793-d410-4e4c-ada1-e55e0a837a73',
+        'refresh-token',
+      ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(cacheService.revokeRefreshTokenFamily).not.toHaveBeenCalled();
   });
 
   it('revokes the complete refresh-token family on logout', async () => {
-    await service.logout(userId, 'refresh-token');
+    await service.logout(userId, currentClaims.sid, 'refresh-token');
 
     expect(cacheService.revokeRefreshTokenFamily).toHaveBeenCalledWith(
       userId,

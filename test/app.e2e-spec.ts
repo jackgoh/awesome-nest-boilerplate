@@ -84,7 +84,7 @@ describe('AuthController (e2e)', () => {
       .expect(401);
   });
 
-  it('/auth/logout (POST) requires matching bearer and refresh identities', async () => {
+  it('/auth/logout (POST) requires the matching authenticated session', async () => {
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
@@ -94,6 +94,12 @@ describe('AuthController (e2e)', () => {
       .expect(200);
     const logoutAccessToken = loginResponse.body.token.accessToken;
     const logoutRefreshToken = loginResponse.body.token.refreshToken;
+
+    await request(app.getHttpServer())
+      .post('/auth/logout')
+      .set({ Authorization: `Bearer ${accessToken}` })
+      .send({ refreshToken: logoutRefreshToken })
+      .expect(401);
 
     await request(app.getHttpServer())
       .post('/auth/logout')

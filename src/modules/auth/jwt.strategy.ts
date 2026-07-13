@@ -4,10 +4,11 @@ import { plainToInstance } from 'class-transformer';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { ApiConfigService } from '../../shared/services/api-config.service';
+import { type AuthenticatedUser } from '../../types/auth-user.type';
 import { CacheService } from '../cache/cache.service';
 import { UserEntity } from '../user/user.entity';
 import { UserService } from '../user/user.service';
-import { accessTokenClaimsSchema } from './jwt-claims';
+import { type AccessTokenClaims, accessTokenClaimsSchema } from './jwt-claims';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -27,7 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: unknown): Promise<UserEntity> {
+  async validate(payload: unknown): Promise<AuthenticatedUser> {
     const claimsResult = accessTokenClaimsSchema.safeParse(payload);
 
     if (!claimsResult.success) {
@@ -45,7 +46,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         try {
           const plainUser = JSON.parse(cachedJsonUser);
 
-          return plainToInstance(UserEntity, plainUser);
+          return this.createPrincipal(
+            plainToInstance(UserEntity, plainUser),
+            claims,
+          );
         } catch (e) {
           this.logger.error(
             `Error deserializing cached user ${claims.sub}: ${e}. Proceeding to DB lookup.`,
@@ -94,6 +98,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       this.logger.error(`Failed to cache user ${claims.sub}: ${cacheError}`);
     }
 
-    return user;
+    return this.createPrincipal(user, claims);
+  }
+
+  private createPrincipal(
+    user: UserEntity,
+    claims: AccessTokenClaims,
+  ): AuthenticatedUser {
+    return Object.assign(user, {
+      authentication: {
+        accessTokenId: claims.jti,
+        sessionId: claims.sid,
+      },
+    }) as AuthenticatedUser;
   }
 }
