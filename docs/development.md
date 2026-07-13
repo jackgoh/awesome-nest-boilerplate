@@ -62,10 +62,21 @@ REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 REDIS_PASSWORD=
 REDIS_DB=0
+
+# Explicit cross-origin allowlist; omit to disable CORS
+CORS_ORIGINS=http://localhost:3000
+
+# Keep zero unless the API is behind exactly this many trusted proxies
+TRUST_PROXY_HOPS=0
 ```
 
 Generate a dedicated JWT RSA key pair for every environment. Never deploy the
 placeholder key material from `.env.example`.
+
+The API uses bearer authentication and does not set authentication cookies.
+Public routes must be explicitly marked with `@Public()`. The default global
+rate limit is configured through `THROTTLER_TTL` and `THROTTLER_LIMIT`; login,
+registration, and refresh use stricter route policies.
 
 ## PostgreSQL and Redis
 

@@ -13,13 +13,14 @@ export interface IApplicationConfiguration {
     fallbackLanguage: string;
     documentationEnabled: boolean;
     performanceMonitoringEnabled: boolean;
+    corsOrigins: string[];
+    trustProxyHops: number;
   };
   auth: {
     privateKey: string;
     publicKey: string;
     jwtExpirationTime: number;
     jwtRefreshExpirationTime: number;
-    cookieMaxAge: number;
   };
   database: {
     host: string;
@@ -68,13 +69,14 @@ export function createConfiguration(
       fallbackLanguage: environment.FALLBACK_LANGUAGE,
       documentationEnabled: environment.ENABLE_DOCUMENTATION,
       performanceMonitoringEnabled: environment.ENABLE_PERFORMANCE_MONITORING,
+      corsOrigins: environment.CORS_ORIGINS,
+      trustProxyHops: environment.TRUST_PROXY_HOPS,
     },
     auth: {
       privateKey: expandEscapedNewlines(environment.JWT_PRIVATE_KEY),
       publicKey: expandEscapedNewlines(environment.JWT_PUBLIC_KEY),
       jwtExpirationTime: environment.JWT_EXPIRATION_TIME,
       jwtRefreshExpirationTime: environment.JWT_REFRESH_EXPIRATION_TIME,
-      cookieMaxAge: environment.JWT_REFRESH_EXPIRATION_TIME * 1000,
     },
     database: {
       host: environment.DB_HOST,

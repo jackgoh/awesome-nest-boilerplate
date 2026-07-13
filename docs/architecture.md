@@ -11,7 +11,9 @@ The application is a modular NestJS HTTP service backed by PostgreSQL and Redis.
 - `TypeOrmModule` creates the shared TypeORM 1 data source.
 - `ClsModule` and the TypeORM transactional adapter propagate the current
   entity manager through async call chains.
-- Redis provides application caching.
+- Global guards enforce throttling, JWT authentication, and permissions in that
+  order. Routes are private unless explicitly marked `@Public()`.
+- Redis provides application caching and atomic refresh-token rotation.
 - Feature modules own their controllers, services, entities, commands, and
   authorization rules.
 
@@ -25,6 +27,21 @@ All environment parsing lives in `src/config`. Zod validates required values,
 coerces numbers and booleans, and rejects invalid duration strings. Production
 does not load local dotenv files. Application providers use the typed
 `ApiConfigService` facade instead of reading `process.env` directly.
+
+CORS uses an explicit, validated origin allowlist. Proxy forwarding headers are
+trusted only when `TRUST_PROXY_HOPS` is greater than zero.
+
+## Authentication boundary
+
+The HTTP API uses bearer tokens only. Login returns access and refresh tokens in
+JSON and never creates authentication cookies. Access tokens are accepted only
+from the `Authorization` header. Refresh and logout requests carry the refresh
+token in a validated JSON body.
+
+Each login creates a refresh-token family. Rotation compares and replaces the
+active token through one Redis script. A replayed token revokes every active
+token in its family. Logout also validates that the refresh-token subject
+matches the authenticated access-token subject before revoking the family.
 
 ## Persistence and transactions
 

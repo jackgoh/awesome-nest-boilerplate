@@ -25,6 +25,19 @@ const portFromEnvironment = integerFromEnvironment.pipe(
   z.number().int().positive().max(65_535),
 );
 
+const corsOriginsFromEnvironment = z.preprocess((value) => {
+  const normalized = emptyStringToUndefined(value);
+
+  if (typeof normalized !== 'string') {
+    return [];
+  }
+
+  return normalized
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}, z.array(z.url()));
+
 const booleanFromEnvironment = z.preprocess((value) => {
   const normalized = emptyStringToUndefined(value);
 
@@ -111,6 +124,8 @@ export const environmentSchema = z
     FALLBACK_LANGUAGE: z.string().trim().min(1).default('en_US'),
     ENABLE_DOCUMENTATION: booleanFromEnvironment.default(false),
     ENABLE_PERFORMANCE_MONITORING: booleanFromEnvironment.default(false),
+    CORS_ORIGINS: corsOriginsFromEnvironment,
+    TRUST_PROXY_HOPS: nonNegativeIntegerFromEnvironment.default(0),
 
     JWT_PRIVATE_KEY: privateKeyFromEnvironment,
     JWT_PUBLIC_KEY: publicKeyFromEnvironment,

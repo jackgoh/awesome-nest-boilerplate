@@ -1,7 +1,6 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { PermissionsGuard } from '../../guards/permissions.guard';
 import { UserModule } from '../user/user.module';
 import { PermissionEntity } from './entities/permission.entity';
 import { RoleEntity } from './entities/role.entity';
@@ -15,7 +14,7 @@ import { IAMService } from './iam.service';
     forwardRef(() => UserModule),
   ],
   controllers: [IAMController],
-  providers: [IAMService, PermissionsGuard],
-  exports: [IAMService, PermissionsGuard],
+  providers: [IAMService],
+  exports: [IAMService],
 })
 export class IAMModule {}

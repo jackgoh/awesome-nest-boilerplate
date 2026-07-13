@@ -11,7 +11,6 @@ import {
   type NestExpressApplication,
 } from '@nestjs/platform-express';
 import compression from 'compression';
-import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
@@ -25,14 +24,25 @@ const bootstrap = async () => {
   const app = await NestFactory.create<NestExpressApplication>(
     AppModule,
     new ExpressAdapter(),
-    { cors: true },
+    { cors: false },
   );
-  app.enable('trust proxy'); // only if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
+  const configService = app.get(ApiConfigService);
+
+  if (configService.appConfig.corsOrigins.length > 0) {
+    app.enableCors({
+      origin: configService.appConfig.corsOrigins,
+      credentials: false,
+    });
+  }
+
+  if (configService.appConfig.trustProxyHops > 0) {
+    app.set('trust proxy', configService.appConfig.trustProxyHops);
+  }
+
   app.use(helmet());
   // app.setGlobalPrefix('/api'); use api as global prefix if you don't have subdomain
   app.use(compression());
   app.use(morgan('combined'));
-  app.use(cookieParser());
   app.enableVersioning({
     defaultVersion: '1',
     type: VersioningType.URI,
@@ -56,8 +66,6 @@ const bootstrap = async () => {
       exceptionFactory: (errors) => new UnprocessableEntityException(errors),
     }),
   );
-
-  const configService = app.get(ApiConfigService);
 
   if (configService.documentationEnabled) {
     setupSwagger(app);

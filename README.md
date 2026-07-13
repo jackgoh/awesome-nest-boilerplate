@@ -123,7 +123,7 @@ pnpm start:prod
 
 ## ⚡ Features
 
-- ✅ **JWT Authentication** - Secure authentication system
+- ✅ **JWT Authentication** - Default-deny bearer authentication with refresh-token rotation
 - ✅ **Role-based Access Control** - User permissions and roles
 - ✅ **API Documentation** - Auto-generated Swagger docs
 - ✅ **Database Migrations** - TypeORM migration system
@@ -132,11 +132,22 @@ pnpm start:prod
 - ✅ **Error Handling** - Comprehensive error handling
 - ✅ **Logging** - Structured logging system
 - ✅ **Health Checks** - Application health monitoring
-- ✅ **Rate Limiting** - API rate limiting protection
-- ✅ **CORS Support** - Cross-origin resource sharing
+- ✅ **Rate Limiting** - Globally enforced limits with stricter authentication policies
+- ✅ **CORS Support** - Validated origin allowlist
 - ✅ **Security Headers** - Helmet.js security headers
 - ✅ **Code Quality** - ESLint, Prettier, Husky pre-commit hooks
 - ✅ **Testing Setup** - Unit and E2E testing with Jest
+
+## 🔐 Authentication model
+
+This boilerplate exposes bearer-token APIs. Login returns access and refresh
+tokens in JSON; it does not set authentication cookies. Send access tokens as
+`Authorization: Bearer <access-token>`. Send refresh tokens in the validated
+JSON body for `/auth/refresh` and `/auth/logout`.
+
+Authentication is global and default-deny. Only endpoints marked with the
+`@Public()` decorator bypass JWT validation. Refresh tokens rotate atomically in
+Redis, and replaying a consumed token revokes the active token family.
 
 ## 🔧 Code Quality & Git Hooks
 

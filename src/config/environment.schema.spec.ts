@@ -24,6 +24,7 @@ describe('environment configuration', () => {
     const environment = validateEnvironment({
       ...validEnvironment(),
       ENABLE_DOCUMENTATION: 'yes',
+      CORS_ORIGINS: 'https://app.example.com, https://admin.example.com',
       REDIS_DB: '0',
       THROTTLER_TTL: '1m',
     });
@@ -31,6 +32,7 @@ describe('environment configuration', () => {
     expect(environment).toMatchObject({
       PORT: 3000,
       ENABLE_DOCUMENTATION: true,
+      CORS_ORIGINS: ['https://app.example.com', 'https://admin.example.com'],
       REDIS_DB: 0,
       JWT_REFRESH_EXPIRATION_TIME: 604_800,
       THROTTLER_TTL: 60_000,
@@ -61,6 +63,16 @@ describe('environment configuration', () => {
     expect(() =>
       validateEnvironment({ ...validEnvironment(), PORT: '65536' }),
     ).toThrow(/PORT:/);
+  });
+
+  it('rejects malformed CORS origins and proxy hop counts', () => {
+    expect(() =>
+      validateEnvironment({
+        ...validEnvironment(),
+        CORS_ORIGINS: '*',
+        TRUST_PROXY_HOPS: '-1',
+      }),
+    ).toThrow(/CORS_ORIGINS\.0:.*TRUST_PROXY_HOPS:/);
   });
 
   it('uses deterministic environment-file precedence and isolates production', () => {

@@ -8,8 +8,6 @@ import { UserModule } from '../user/user.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
-import { PublicStrategy } from './public.strategy';
-import { RefreshTokenStrategy } from './refresh-token.strategy';
 
 @Module({
   imports: [
@@ -32,7 +30,7 @@ import { RefreshTokenStrategy } from './refresh-token.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, PublicStrategy, RefreshTokenStrategy],
+  providers: [AuthService, JwtStrategy],
   exports: [JwtModule, AuthService],
 })
 export class AuthModule {}

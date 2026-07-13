@@ -13,6 +13,44 @@ import { UserService } from '../user/user.service';
 import { TokenPayloadDto } from './dto/token-payload.dto';
 import { type UserLoginDto } from './dto/user-login.dto';
 
+interface ITokenSubject {
+  userId: Uuid;
+  roles: RoleEntity[];
+}
+
+interface IRefreshTokenClaims {
+  userId: Uuid;
+  type: TokenType;
+  tokenId: string;
+  familyId: string;
+}
+
+interface ISignedTokens {
+  tokenId: string;
+  tokens: TokenPayloadDto;
+}
+
+function hashRefreshToken(refreshToken: string): string {
+  return createHash('sha256').update(refreshToken).digest('hex');
+}
+
+function isRefreshTokenClaims(
+  payload: unknown,
+): payload is IRefreshTokenClaims {
+  if (!payload || typeof payload !== 'object') {
+    return false;
+  }
+
+  const claims = payload as Partial<IRefreshTokenClaims>;
+
+  return (
+    claims.type === TokenType.REFRESH_TOKEN &&
+    typeof claims.userId === 'string' &&
+    typeof claims.tokenId === 'string' &&
+    typeof claims.familyId === 'string'
+  );
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -22,10 +60,25 @@ export class AuthService {
     private cacheService: CacheService,
   ) {}
 
-  async createTokens(data: {
-    userId: Uuid;
-    roles: RoleEntity[];
-  }): Promise<TokenPayloadDto> {
+  async createTokens(data: ITokenSubject): Promise<TokenPayloadDto> {
+    const familyId = randomUUID();
+    const signedTokens = await this.signTokens(data, familyId);
+    const refreshTokenHash = hashRefreshToken(signedTokens.tokens.refreshToken);
+
+    await this.cacheService.storeRefreshToken(
+      data.userId,
+      familyId,
+      signedTokens.tokenId,
+      refreshTokenHash,
+    );
+
+    return signedTokens.tokens;
+  }
+
+  private async signTokens(
+    data: ITokenSubject,
+    familyId: string,
+  ): Promise<ISignedTokens> {
     const tokenId = randomUUID();
     const roleNames = data.roles.map((role) => role.name);
 
@@ -45,6 +98,7 @@ export class AuthService {
           userId: data.userId,
           type: TokenType.REFRESH_TOKEN,
           tokenId,
+          familyId,
         },
         {
           expiresIn: this.configService.authConfig.jwtRefreshExpirationTime,
@@ -52,72 +106,61 @@ export class AuthService {
       ),
     ]);
 
-    const refreshTokenHash = createHash('sha256')
-      .update(refreshToken)
-      .digest('hex');
-    await this.cacheService.storeRefreshToken(
-      data.userId,
+    return {
       tokenId,
-      refreshTokenHash,
-    );
-
-    return new TokenPayloadDto({
-      expiresIn: this.configService.authConfig.jwtExpirationTime,
-      accessToken,
-      refreshToken,
-    });
-  }
-
-  async createAccessToken(data: {
-    userId: Uuid;
-    roles: RoleEntity[];
-  }): Promise<TokenPayloadDto> {
-    return this.createTokens(data);
+      tokens: new TokenPayloadDto({
+        expiresIn: this.configService.authConfig.jwtExpirationTime,
+        accessToken,
+        refreshToken,
+      }),
+    };
   }
 
   async refreshAccessToken(refreshToken: string): Promise<TokenPayloadDto> {
+    let payload: unknown;
+
     try {
-      const payload = await this.jwtService.verifyAsync(refreshToken);
-
-      if (payload.type !== TokenType.REFRESH_TOKEN) {
-        throw new UnauthorizedException('Invalid token type');
-      }
-
-      const refreshTokenHash = createHash('sha256')
-        .update(refreshToken)
-        .digest('hex');
-      const isValid = await this.cacheService.validateRefreshToken(
-        payload.userId,
-        payload.tokenId,
-        refreshTokenHash,
-      );
-
-      if (!isValid) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      // Invalidate old refresh token (token rotation)
-      await this.cacheService.invalidateRefreshToken(
-        payload.userId,
-        payload.tokenId,
-      );
-
-      const user = await this.userService.findOne({
-        where: { id: payload.userId },
-        relations: { roles: true },
-      });
-
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
-
-      return this.createTokens({
-        userId: user.id,
-        roles: user.roles,
-      });
+      payload = await this.jwtService.verifyAsync(refreshToken);
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
+
+    if (!isRefreshTokenClaims(payload)) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const user = await this.userService.findOne({
+      where: { id: payload.userId },
+      relations: { roles: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const replacement = await this.signTokens(
+      { userId: user.id, roles: user.roles },
+      payload.familyId,
+    );
+    const isRotated = await this.cacheService.rotateRefreshToken({
+      userId: payload.userId,
+      familyId: payload.familyId,
+      currentTokenId: payload.tokenId,
+      currentTokenHash: hashRefreshToken(refreshToken),
+      replacementTokenId: replacement.tokenId,
+      replacementTokenHash: hashRefreshToken(replacement.tokens.refreshToken),
+    });
+
+    if (!isRotated) {
+      await this.cacheService.revokeRefreshTokenFamily(
+        payload.userId,
+        payload.familyId,
+      );
+
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    return replacement.tokens;
   }
 
   async validateUser(userLoginDto: UserLoginDto): Promise<UserEntity> {
@@ -143,16 +186,21 @@ export class AuthService {
   }
 
   async logout(userId: Uuid, token: string): Promise<void> {
+    let payload: unknown;
+
     try {
-      const payload = await this.jwtService.verifyAsync(token);
-
-      if (payload.type !== TokenType.REFRESH_TOKEN) {
-        throw new Error('Invalid token type');
-      }
-
-      await this.cacheService.invalidateRefreshToken(userId, payload.tokenId);
+      payload = await this.jwtService.verifyAsync(token);
     } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
+
+    if (!isRefreshTokenClaims(payload) || payload.userId !== userId) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    await this.cacheService.revokeRefreshTokenFamily(
+      payload.userId,
+      payload.familyId,
+    );
   }
 }

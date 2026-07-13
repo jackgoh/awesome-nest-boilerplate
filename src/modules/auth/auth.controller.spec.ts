@@ -1,11 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { type Response } from 'express';
 
-import { ApiConfigService } from '../../shared/services/api-config.service';
 import { type Uuid } from '../../types';
 import { type AuthenticatedUser } from '../../types/auth-user.type';
 import { type RoleEntity } from '../iam/entities/role.entity';
@@ -79,25 +75,14 @@ describe('AuthController', () => {
   const mockAuthService = {
     validateUser: jest.fn(),
     createTokens: jest.fn(),
+    refreshAccessToken: jest.fn(),
+    logout: jest.fn(),
   };
 
   const mockUserService = {
     createUser: jest.fn(),
     findOne: jest.fn(),
   };
-
-  const mockApiConfigService = {
-    isProduction: false,
-    authConfig: {
-      jwtExpirationTime: 3600,
-      cookieMaxAge: 604_800_000,
-    },
-  };
-
-  const mockResponse = {
-    cookie: jest.fn(),
-    clearCookie: jest.fn(),
-  } as unknown as Response;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -110,22 +95,6 @@ describe('AuthController', () => {
         {
           provide: UserService,
           useValue: mockUserService,
-        },
-        {
-          provide: ApiConfigService,
-          useValue: mockApiConfigService,
-        },
-        {
-          provide: JwtService,
-          useValue: {
-            signAsync: jest.fn().mockResolvedValue('mock-jwt-token'),
-          },
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn(),
-          },
         },
       ],
     }).compile();
@@ -155,7 +124,7 @@ describe('AuthController', () => {
       mockAuthService.createTokens.mockResolvedValue(mockTokenPayload);
 
       // Act
-      const result = await controller.userLogin(loginDto, mockResponse);
+      const result = await controller.userLogin(loginDto);
 
       // Assert
       expect(authService.validateUser).toHaveBeenCalledWith(loginDto);
@@ -175,9 +144,9 @@ describe('AuthController', () => {
       );
 
       // Act & Assert
-      await expect(
-        controller.userLogin(loginDto, mockResponse),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(controller.userLogin(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
       expect(authService.validateUser).toHaveBeenCalledWith(loginDto);
       expect(authService.createTokens).not.toHaveBeenCalled();
     });
@@ -194,9 +163,9 @@ describe('AuthController', () => {
       };
 
       // Act & Assert
-      await expect(
-        controller.userLogin(nonExistentUserLogin, mockResponse),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(controller.userLogin(nonExistentUserLogin)).rejects.toThrow(
+        UnauthorizedException,
+      );
       expect(authService.validateUser).toHaveBeenCalledWith(
         nonExistentUserLogin,
       );
@@ -214,9 +183,38 @@ describe('AuthController', () => {
       );
 
       // Act & Assert
+      await expect(controller.userLogin(emptyLogin)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+  });
+
+  describe('POST /auth/refresh', () => {
+    it('rotates a bearer refresh token from the request body', async () => {
+      mockAuthService.refreshAccessToken.mockResolvedValue(mockTokenPayload);
+
       await expect(
-        controller.userLogin(emptyLogin, mockResponse),
-      ).rejects.toThrow(UnauthorizedException);
+        controller.refreshToken({ refreshToken: 'current-refresh-token' }),
+      ).resolves.toEqual(mockTokenPayload);
+      expect(authService.refreshAccessToken).toHaveBeenCalledWith(
+        'current-refresh-token',
+      );
+    });
+  });
+
+  describe('POST /auth/logout', () => {
+    it('revokes the authenticated user refresh-token family', async () => {
+      mockAuthService.logout.mockResolvedValue(undefined);
+
+      await expect(
+        controller.logout(mockUser, {
+          refreshToken: 'current-refresh-token',
+        }),
+      ).resolves.toEqual({ message: 'Successfully logged out' });
+      expect(authService.logout).toHaveBeenCalledWith(
+        mockUser.id,
+        'current-refresh-token',
+      );
     });
   });
 
@@ -478,9 +476,9 @@ describe('AuthController', () => {
       );
 
       // Act & Assert
-      await expect(
-        controller.userLogin(loginDto, mockResponse),
-      ).rejects.toThrow('Database connection error');
+      await expect(controller.userLogin(loginDto)).rejects.toThrow(
+        'Database connection error',
+      );
     });
 
     it('should handle token creation errors', async () => {
@@ -496,9 +494,9 @@ describe('AuthController', () => {
       );
 
       // Act & Assert
-      await expect(
-        controller.userLogin(loginDto, mockResponse),
-      ).rejects.toThrow('Token creation failed');
+      await expect(controller.userLogin(loginDto)).rejects.toThrow(
+        'Token creation failed',
+      );
     });
   });
 
@@ -514,7 +512,7 @@ describe('AuthController', () => {
       mockAuthService.createTokens.mockResolvedValue(mockTokenPayload);
 
       // Act
-      const result = await controller.userLogin(loginDto, mockResponse);
+      const result = await controller.userLogin(loginDto);
 
       // Assert
       expect(result).toBeInstanceOf(LoginPayloadDto);
