@@ -2,7 +2,6 @@ import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource, type Repository } from 'typeorm';
-import { initializeTransactionalContext } from 'typeorm-transactional';
 
 import { AppModule } from '../src/app.module';
 import { UserEntity } from '../src/modules/user/user.entity';
@@ -14,7 +13,6 @@ describe('AuthController (e2e)', () => {
   let userRepository: Repository<UserEntity>;
 
   beforeAll(async () => {
-    initializeTransactionalContext();
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

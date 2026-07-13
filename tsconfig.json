@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "rootDir": "src",
-    "module": "commonjs",
+    "module": "NodeNext",
     "declaration": false,
     "noImplicitAny": false,
     "removeComments": true,
@@ -12,23 +12,19 @@
     "experimentalDecorators": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "target": "ES2022",
+    "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./src",
     "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/typescript/build.tsbuildinfo",
     "strictNullChecks": true,
     "skipLibCheck": true,
     "noUnusedParameters": true,
     "noUnusedLocals": true,
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "NodeNext",
+    "types": ["node"]
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "**/*.spec.ts"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "**/*.spec.ts"]
 }

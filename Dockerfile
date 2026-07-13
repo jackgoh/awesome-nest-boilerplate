@@ -1,30 +1,43 @@
-FROM node:lts AS dist
-COPY package.json yarn.lock ./
+FROM node:24.11.0-bookworm-slim AS base
 
-RUN yarn install
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
-COPY . ./
-
-RUN yarn build:prod
-
-FROM node:lts AS node_modules
-COPY package.json yarn.lock ./
-
-RUN yarn install --prod
-
-FROM node:lts
-
-ARG PORT=3000
-
-RUN mkdir -p /usr/src/app
+RUN npm install --global pnpm@11.12.0
 
 WORKDIR /usr/src/app
 
-COPY --from=dist dist /usr/src/app/dist
-COPY --from=node_modules node_modules /usr/src/app/node_modules
+FROM base AS dependencies
 
-COPY . /usr/src/app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm fetch --frozen-lockfile
+RUN pnpm install --offline --frozen-lockfile
 
-EXPOSE $PORT
+FROM dependencies AS build
 
-CMD [ "yarn", "start:prod" ]
+COPY . .
+RUN pnpm run build:prod
+
+FROM base AS production-dependencies
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm fetch --prod --frozen-lockfile
+RUN pnpm install --prod --offline --frozen-lockfile --ignore-scripts
+RUN pnpm rebuild bcrypt
+
+FROM node:24.11.0-bookworm-slim AS runtime
+
+ENV NODE_ENV="production"
+ENV PORT="3000"
+
+WORKDIR /usr/src/app
+
+COPY --chown=node:node package.json ./
+COPY --chown=node:node --from=production-dependencies /usr/src/app/node_modules ./node_modules
+COPY --chown=node:node --from=build /usr/src/app/dist ./dist
+
+USER node
+
+EXPOSE 3000
+
+CMD ["node", "--enable-source-maps", "dist/main.js"]

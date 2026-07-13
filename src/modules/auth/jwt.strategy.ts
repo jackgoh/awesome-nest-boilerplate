@@ -23,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromExtractors([
         ExtractJwt.fromAuthHeaderAsBearerToken(),
         (request) => {
-          if (request.cookies?.accessToken) {
+          if (request.cookies.accessToken) {
             return request.cookies.accessToken;
           }
 
@@ -66,7 +66,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.userService.findOne({
       where: { id: payload.userId },
-      relations: ['roles', 'roles.permissions', 'directPermissions'],
+      relations: {
+        roles: { permissions: true },
+        directPermissions: true,
+      },
       select: {
         id: true,
         email: true,

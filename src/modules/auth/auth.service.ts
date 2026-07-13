@@ -104,7 +104,7 @@ export class AuthService {
 
       const user = await this.userService.findOne({
         where: { id: payload.userId },
-        relations: ['roles'],
+        relations: { roles: true },
       });
 
       if (!user) {
@@ -123,7 +123,7 @@ export class AuthService {
   async validateUser(userLoginDto: UserLoginDto): Promise<UserEntity> {
     const user = await this.userService.findOne({
       where: { email: userLoginDto.email },
-      relations: ['roles'],
+      relations: { roles: true },
     });
 
     if (!user) {

@@ -6,7 +6,6 @@ import {
   VersioningType,
 } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
-import { Transport } from '@nestjs/microservices';
 import {
   ExpressAdapter,
   type NestExpressApplication,
@@ -15,17 +14,14 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { initializeTransactionalContext } from 'typeorm-transactional';
 
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './filters/bad-request.filter';
 import { QueryFailedFilter } from './filters/query-failed.filter';
 import { setupSwagger } from './setup-swagger';
 import { ApiConfigService } from './shared/services/api-config.service';
-import { SharedModule } from './shared/shared.module';
 
 const bootstrap = async () => {
-  initializeTransactionalContext();
   const app = await NestFactory.create<NestExpressApplication>(
     AppModule,
     new ExpressAdapter(),
@@ -61,30 +57,13 @@ const bootstrap = async () => {
     }),
   );
 
-  const configService = app.select(SharedModule).get(ApiConfigService);
-
-  // only start nats if it is enabled
-  if (configService.natsEnabled) {
-    const natsConfig = configService.natsConfig;
-    app.connectMicroservice({
-      transport: Transport.NATS,
-      options: {
-        url: `nats://${natsConfig.host}:${natsConfig.port}`,
-        queue: 'main_service',
-      },
-    });
-
-    await app.startAllMicroservices();
-  }
+  const configService = app.get(ApiConfigService);
 
   if (configService.documentationEnabled) {
     setupSwagger(app);
   }
 
-  // Starts listening for shutdown hooks
-  if (!configService.isDevelopment) {
-    app.enableShutdownHooks();
-  }
+  app.enableShutdownHooks();
 
   const port = configService.appConfig.port;
   await app.listen(port);
@@ -94,4 +73,7 @@ const bootstrap = async () => {
   return app;
 };
 
-void bootstrap();
+void bootstrap().catch((error: unknown) => {
+  console.error('Application bootstrap failed', error);
+  process.exitCode = 1;
+});

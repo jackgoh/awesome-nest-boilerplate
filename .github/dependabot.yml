@@ -2,27 +2,24 @@ version: 2
 updates:
   # Node.js dependencies
   - package-ecosystem: npm
-    directory: "/"
+    directory: '/'
     schedule:
       interval: weekly
       day: tuesday
-      time: "02:00"
+      time: '02:00'
     open-pull-requests-limit: 5
-    target-branch: "develop"
+    target-branch: 'develop'
     labels:
       - dependencies
       - dependabot
-    reviewers:
-      - "your-username"
-    assignees:
-      - "your-username"
     commit-message:
-      prefix: "chore"
-      include: "scope"
-    ignore:
-      # Ignore major version updates for certain packages
-      - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@types/*"
-        update-types: ["version-update:semver-major"]
-
+      prefix: 'chore'
+      include: 'scope'
+    groups:
+      nestjs:
+        patterns:
+          - '@nestjs/*'
+      nestjs-cls:
+        patterns:
+          - 'nestjs-cls'
+          - '@nestjs-cls/*'

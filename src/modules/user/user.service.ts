@@ -4,14 +4,14 @@ import {
   Logger,
 } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
+import { type TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { plainToClass } from 'class-transformer';
-import { type FindOneOptions, Repository } from 'typeorm';
-import { Transactional } from 'typeorm-transactional';
+import { type FindOneOptions, type Repository } from 'typeorm';
 
 import { type PageDto } from '../../common/dto/page.dto';
 import { FileNotImageException, UserNotFoundException } from '../../exceptions';
-import { IFile } from '../../interfaces';
+import { type IFile } from '../../interfaces';
 import { AwsS3Service } from '../../shared/services/aws-s3.service';
 import { ValidatorService } from '../../shared/services/validator.service';
 import { UserRegisterDto } from '../auth/dto/user-register.dto';
@@ -28,13 +28,20 @@ export class UserService {
   private readonly logger = new Logger(UserService.name);
 
   constructor(
-    @InjectRepository(UserEntity)
-    private userRepository: Repository<UserEntity>,
+    private readonly txHost: TransactionHost<TransactionalAdapterTypeOrm>,
     private validatorService: ValidatorService,
     private awsS3Service: AwsS3Service,
     private commandBus: CommandBus,
     private iamService: IAMService,
   ) {}
+
+  /**
+   * Repositories obtained from the transactional EntityManager participate in
+   * the current CLS transaction and fall back to the default manager otherwise.
+   */
+  private get userRepository(): Repository<UserEntity> {
+    return this.txHost.tx.getRepository(UserEntity);
+  }
 
   /**
    * Find single user

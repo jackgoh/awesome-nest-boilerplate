@@ -3,9 +3,11 @@ import { UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { type Response } from 'express';
 
 import { ApiConfigService } from '../../shared/services/api-config.service';
 import { type Uuid } from '../../types';
+import { type AuthenticatedUser } from '../../types/auth-user.type';
 import { type RoleEntity } from '../iam/entities/role.entity';
 import { type UserEntity } from '../user/user.entity';
 import { UserService } from '../user/user.service';
@@ -36,7 +38,7 @@ describe('AuthController', () => {
     }),
   };
 
-  const mockUser: UserEntity = {
+  const mockUser: AuthenticatedUser = {
     id: 'user-id-1' as Uuid,
     firstName: 'John',
     lastName: 'Doe',
@@ -46,6 +48,7 @@ describe('AuthController', () => {
     avatar: null,
     roles: [mockRole],
     directPermissions: [],
+    computedPermissions: [],
     fullName: 'John Doe',
     settings: undefined,
     createdAt: new Date(),
@@ -69,12 +72,13 @@ describe('AuthController', () => {
 
   const mockTokenPayload = new TokenPayloadDto({
     accessToken: 'mock-jwt-token',
+    refreshToken: 'mock-refresh-token',
     expiresIn: 3600,
   });
 
   const mockAuthService = {
     validateUser: jest.fn(),
-    createAccessToken: jest.fn(),
+    createTokens: jest.fn(),
   };
 
   const mockUserService = {
@@ -83,10 +87,17 @@ describe('AuthController', () => {
   };
 
   const mockApiConfigService = {
+    isProduction: false,
     authConfig: {
       jwtExpirationTime: 3600,
+      cookieMaxAge: 604_800_000,
     },
   };
+
+  const mockResponse = {
+    cookie: jest.fn(),
+    clearCookie: jest.fn(),
+  } as unknown as Response;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -141,14 +152,14 @@ describe('AuthController', () => {
     it('should login user successfully with valid credentials', async () => {
       // Arrange
       mockAuthService.validateUser.mockResolvedValue(mockUser);
-      mockAuthService.createAccessToken.mockResolvedValue(mockTokenPayload);
+      mockAuthService.createTokens.mockResolvedValue(mockTokenPayload);
 
       // Act
-      const result = await controller.userLogin(loginDto);
+      const result = await controller.userLogin(loginDto, mockResponse);
 
       // Assert
       expect(authService.validateUser).toHaveBeenCalledWith(loginDto);
-      expect(authService.createAccessToken).toHaveBeenCalledWith({
+      expect(authService.createTokens).toHaveBeenCalledWith({
         userId: mockUser.id,
         roles: mockUser.roles,
       });
@@ -164,11 +175,11 @@ describe('AuthController', () => {
       );
 
       // Act & Assert
-      await expect(controller.userLogin(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        controller.userLogin(loginDto, mockResponse),
+      ).rejects.toThrow(UnauthorizedException);
       expect(authService.validateUser).toHaveBeenCalledWith(loginDto);
-      expect(authService.createAccessToken).not.toHaveBeenCalled();
+      expect(authService.createTokens).not.toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException with non-existent user', async () => {
@@ -183,9 +194,9 @@ describe('AuthController', () => {
       };
 
       // Act & Assert
-      await expect(controller.userLogin(nonExistentUserLogin)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        controller.userLogin(nonExistentUserLogin, mockResponse),
+      ).rejects.toThrow(UnauthorizedException);
       expect(authService.validateUser).toHaveBeenCalledWith(
         nonExistentUserLogin,
       );
@@ -203,9 +214,9 @@ describe('AuthController', () => {
       );
 
       // Act & Assert
-      await expect(controller.userLogin(emptyLogin)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        controller.userLogin(emptyLogin, mockResponse),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -380,7 +391,7 @@ describe('AuthController', () => {
 
     it('should handle user without roles', () => {
       // Arrange
-      const userWithoutRoles: UserEntity = {
+      const userWithoutRoles: AuthenticatedUser = {
         ...mockUser,
         roles: [],
         toDto: jest.fn().mockReturnValue({
@@ -419,7 +430,7 @@ describe('AuthController', () => {
         }),
       };
 
-      const userWithMultipleRoles: UserEntity = {
+      const userWithMultipleRoles: AuthenticatedUser = {
         ...mockUser,
         roles: [mockRole, adminRole],
         toDto: jest.fn().mockReturnValue({
@@ -467,9 +478,9 @@ describe('AuthController', () => {
       );
 
       // Act & Assert
-      await expect(controller.userLogin(loginDto)).rejects.toThrow(
-        'Database connection error',
-      );
+      await expect(
+        controller.userLogin(loginDto, mockResponse),
+      ).rejects.toThrow('Database connection error');
     });
 
     it('should handle token creation errors', async () => {
@@ -480,14 +491,14 @@ describe('AuthController', () => {
       };
 
       mockAuthService.validateUser.mockResolvedValue(mockUser);
-      mockAuthService.createAccessToken.mockRejectedValue(
+      mockAuthService.createTokens.mockRejectedValue(
         new Error('Token creation failed'),
       );
 
       // Act & Assert
-      await expect(controller.userLogin(loginDto)).rejects.toThrow(
-        'Token creation failed',
-      );
+      await expect(
+        controller.userLogin(loginDto, mockResponse),
+      ).rejects.toThrow('Token creation failed');
     });
   });
 
@@ -500,10 +511,10 @@ describe('AuthController', () => {
       };
 
       mockAuthService.validateUser.mockResolvedValue(mockUser);
-      mockAuthService.createAccessToken.mockResolvedValue(mockTokenPayload);
+      mockAuthService.createTokens.mockResolvedValue(mockTokenPayload);
 
       // Act
-      const result = await controller.userLogin(loginDto);
+      const result = await controller.userLogin(loginDto, mockResponse);
 
       // Assert
       expect(result).toBeInstanceOf(LoginPayloadDto);

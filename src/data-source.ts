@@ -1,34 +1,39 @@
 import './boilerplate.polyfill';
 import 'reflect-metadata';
 
-import * as dotenv from 'dotenv';
-import { DataSource, type DataSourceOptions } from 'typeorm';
-import type { SeederOptions } from 'typeorm-extension';
+import { loadEnvFile } from 'node:process';
 
-import { UserSubscriber } from './entity-subscribers/user-subscriber';
-import { SnakeNamingStrategy } from './snake-naming.strategy';
+import { DataSource } from 'typeorm';
 
-// Load environment variables from .env file
-dotenv.config();
+import {
+  createConfiguration,
+  createTypeOrmOptions,
+  getEnvironmentFilePaths,
+  getValidatedEnvironment,
+} from './config';
 
-export const dataSourceOptions: DataSourceOptions & SeederOptions = {
-  type: 'postgres',
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  username: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE,
-  namingStrategy: new SnakeNamingStrategy(),
-  subscribers: [UserSubscriber],
-  entities: [
-    'src/modules/**/*.entity{.ts,.js}',
-    'src/modules/**/*.view-entity{.ts,.js}',
-  ],
-  migrations: ['src/database/migrations/*{.ts,.js}'],
-  seeds: ['src/database/seeds/*{.ts,.js}'],
-  factories: ['src/database/factories/*{.ts,.js}'],
-  // ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  logging: process.env.ENABLE_ORM_LOGS === 'true',
-};
+// Nest loads env files through ConfigModule. Standalone TypeORM commands need
+// to load the same file before using the shared validation/configuration path.
+for (const environmentFilePath of getEnvironmentFilePaths(
+  process.env.NODE_ENV ?? 'development',
+)) {
+  try {
+    loadEnvFile(environmentFilePath);
+  } catch (error) {
+    if (!(
+      error instanceof Error &&
+      'code' in error &&
+      error.code === 'ENOENT'
+    )) {
+      throw error;
+    }
+  }
+}
+
+const applicationConfig = createConfiguration(getValidatedEnvironment());
+
+export const dataSourceOptions = createTypeOrmOptions(
+  applicationConfig.database,
+);
 
 export const appDataSource = new DataSource(dataSourceOptions);

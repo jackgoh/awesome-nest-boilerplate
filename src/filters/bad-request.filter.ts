@@ -10,9 +10,7 @@ import { type Response } from 'express';
 import _ from 'lodash';
 
 @Catch(UnprocessableEntityException)
-export class HttpExceptionFilter
-  implements ExceptionFilter<UnprocessableEntityException>
-{
+export class HttpExceptionFilter implements ExceptionFilter<UnprocessableEntityException> {
   constructor(public reflector: Reflector) {}
 
   catch(exception: UnprocessableEntityException, host: ArgumentsHost): void {

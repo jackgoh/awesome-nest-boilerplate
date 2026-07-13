@@ -1,4 +1,5 @@
 import { Global, Module, type Provider } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { ApiConfigService } from './services/api-config.service';
@@ -16,7 +17,7 @@ const providers: Provider[] = [
 @Global()
 @Module({
   providers,
-  imports: [CqrsModule],
+  imports: [ConfigModule, CqrsModule],
   exports: [...providers, CqrsModule],
 })
 export class SharedModule {}

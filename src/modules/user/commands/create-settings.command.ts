@@ -3,8 +3,9 @@ import {
   type ICommand,
   type ICommandHandler,
 } from '@nestjs/cqrs';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TransactionHost } from '@nestjs-cls/transactional';
+import { type TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
+import { type Repository } from 'typeorm';
 
 import { type CreateSettingsDto } from '../dtos/create-settings.dto';
 import { UserSettingsEntity } from '../user-settings.entity';
@@ -17,13 +18,17 @@ export class CreateSettingsCommand implements ICommand {
 }
 
 @CommandHandler(CreateSettingsCommand)
-export class CreateSettingsHandler
-  implements ICommandHandler<CreateSettingsCommand, UserSettingsEntity>
-{
+export class CreateSettingsHandler implements ICommandHandler<
+  CreateSettingsCommand,
+  UserSettingsEntity
+> {
   constructor(
-    @InjectRepository(UserSettingsEntity)
-    private userSettingsRepository: Repository<UserSettingsEntity>,
+    private readonly txHost: TransactionHost<TransactionalAdapterTypeOrm>,
   ) {}
+
+  private get userSettingsRepository(): Repository<UserSettingsEntity> {
+    return this.txHost.tx.getRepository(UserSettingsEntity);
+  }
 
   execute(command: CreateSettingsCommand) {
     const { userId, createSettingsDto } = command;

@@ -3,9 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
-import { Transactional } from 'typeorm-transactional';
+import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
+import { type TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
+import { In, type Repository } from 'typeorm';
 
 import { UserEntity } from '../user/user.entity';
 import { CreatePermissionDto } from './dto/create-permission.dto';
@@ -17,11 +17,16 @@ import { RoleEntity } from './entities/role.entity';
 @Injectable()
 export class IAMService {
   constructor(
-    @InjectRepository(RoleEntity)
-    private roleRepository: Repository<RoleEntity>,
-    @InjectRepository(PermissionEntity)
-    private permissionRepository: Repository<PermissionEntity>,
+    private readonly txHost: TransactionHost<TransactionalAdapterTypeOrm>,
   ) {}
+
+  private get roleRepository(): Repository<RoleEntity> {
+    return this.txHost.tx.getRepository(RoleEntity);
+  }
+
+  private get permissionRepository(): Repository<PermissionEntity> {
+    return this.txHost.tx.getRepository(PermissionEntity);
+  }
 
   @Transactional()
   async createRole(createRoleDto: CreateRoleDto): Promise<RoleEntity> {
@@ -38,13 +43,13 @@ export class IAMService {
   }
 
   async findAllRoles(): Promise<RoleEntity[]> {
-    return this.roleRepository.find({ relations: ['permissions'] });
+    return this.roleRepository.find({ relations: { permissions: true } });
   }
 
   async findRoleById(id: string): Promise<RoleEntity> {
     const role = await this.roleRepository.findOne({
       where: { id: id as Uuid },
-      relations: ['permissions'],
+      relations: { permissions: true },
     });
 
     if (!role) {
@@ -57,7 +62,7 @@ export class IAMService {
   async findRoleByName(name: string): Promise<RoleEntity | null> {
     return this.roleRepository.findOne({
       where: { name },
-      relations: ['permissions'],
+      relations: { permissions: true },
     });
   }
 
@@ -85,7 +90,7 @@ export class IAMService {
   }
 
   async deleteRole(id: string): Promise<void> {
-    const result = await this.roleRepository.delete(id as Uuid);
+    const result = await this.roleRepository.delete(id);
 
     if (result.affected === 0) {
       throw new NotFoundException(`Role with ID ${id} not found`);
@@ -142,7 +147,7 @@ export class IAMService {
    * @returns A promise resolving to an array of unique permission names.
    */
   async getPermissionsForUser(userId: Uuid): Promise<string[]> {
-    const user = await this.roleRepository.manager
+    const user = await this.txHost.tx
       .getRepository(UserEntity)
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.roles', 'role')

@@ -18,7 +18,6 @@ export default [
       '.eslintrc.js',
       'node_modules/**',
       'dist/**',
-      '.vuepress/**',
       'coverage/**',
     ],
   },
@@ -44,7 +43,6 @@ export default [
         clearInterval: 'readonly',
         setImmediate: 'readonly',
         clearImmediate: 'readonly',
-        args: 'readonly', // for hygen templates
         Uuid: 'readonly',
         describe: 'readonly',
       },
@@ -75,7 +73,6 @@ export default [
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         setInterval: 'readonly',
-        args: 'readonly', // for hygen templates
         // Custom types
         Uuid: 'readonly',
         // Jest globals

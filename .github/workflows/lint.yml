@@ -1,38 +1,114 @@
-name: Lint & Format
+name: Verify
 
 on:
-  # Trigger the workflow on push or pull request,
-  # but only for the main branch
   push:
     branches:
       - main
   pull_request:
-    branches:
-      - develop
+    branches: [main, develop]
 
 jobs:
-  lint:
-    name: Lint & Format Check
+  verify:
+    name: Format, lint, type-check, build, and test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: nest_boilerplate_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nest_boilerplate_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: nest_boilerplate_test
+      DB_SSL: false
+      DB_DROP_SCHEMA: false
+      ENABLE_ORM_LOGS: false
+      AWS_S3_BUCKET_REGION: us-east-1
+      AWS_S3_API_VERSION: 2006-03-01
+      AWS_S3_BUCKET_NAME: test-bucket
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'yarn'
+          node-version: '24.11.0'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate test JWT keys
+        shell: bash
+        run: |
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /tmp/jwt-private.pem
+          openssl pkey -in /tmp/jwt-private.pem -pubout -out /tmp/jwt-public.pem
+          {
+            echo 'JWT_PRIVATE_KEY<<JWT_PRIVATE_KEY_EOF'
+            cat /tmp/jwt-private.pem
+            echo 'JWT_PRIVATE_KEY_EOF'
+            echo 'JWT_PUBLIC_KEY<<JWT_PUBLIC_KEY_EOF'
+            cat /tmp/jwt-public.pem
+            echo 'JWT_PUBLIC_KEY_EOF'
+          } >> "$GITHUB_ENV"
+
+      - name: Check formatting
+        run: pnpm format:check
 
       - name: Run ESLint
-        run: yarn lint
+        run: pnpm lint
 
-      - name: Check Prettier formatting
-        run: yarn prettier --check "src/**/*.{ts,js,json,md}"
+      - name: Run TypeScript 7 type check
+        run: pnpm type-check
 
-      - name: Run TypeScript type check
-        run: yarn build:prod
+      - name: Run TypeScript 6 compatibility check
+        run: pnpm type-check:compat
+
+      - name: Run TypeScript 7 test type check
+        run: pnpm type-check:test
+
+      - name: Run TypeScript 6 test compatibility check
+        run: pnpm type-check:test:compat
+
+      - name: Build
+        run: pnpm build:prod
+
+      - name: Run unit tests
+        run: pnpm test
+
+      - name: Run database migrations
+        run: pnpm migration:run
+
+      - name: Run database seeds
+        run: pnpm seed:run
+
+      - name: Run end-to-end and transaction rollback tests
+        run: pnpm test:e2e

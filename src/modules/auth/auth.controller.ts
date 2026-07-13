@@ -12,7 +12,7 @@ import {
   Version,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
 
 import { ApiFile, Auth, AuthUser, Cookies } from '../../decorators';
 import { type IFile } from '../../interfaces';

@@ -1,5 +1,15 @@
 import { DefaultNamingStrategy, type NamingStrategyInterface } from 'typeorm';
-import { snakeCase } from 'typeorm/util/StringUtils';
+
+/**
+ * Convert camelCase/PascalCase identifiers to snake_case without importing
+ * TypeORM's private utility modules.
+ */
+export function snakeCase(value: string): string {
+  return value
+    .replaceAll(/([a-z\d])([A-Z])/g, '$1_$2')
+    .replaceAll(/([A-Z])([A-Z][a-z])/g, '$1_$2')
+    .toLowerCase();
+}
 
 export class SnakeNamingStrategy
   extends DefaultNamingStrategy

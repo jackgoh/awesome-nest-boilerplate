@@ -1,24 +1,55 @@
-version: "3"
 services:
-  awesome-nest-db:
-    image: postgres:16
-    container_name: awesome-nest-db
-    restart: always
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD: postgres
-      TZ: 'GMT'
-      PGTZ: 'GMT'
+      POSTGRES_DB: ${DB_DATABASE:-nest_boilerplate}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      TZ: UTC
     ports:
-      - "5432:5432"
+      - '${DB_PORT:-5432}:5432'
     volumes:
-      - awesome-nest-db-vol:/var/lib/postgresql/data
-      - type: bind
-        source: ./init-data.sh
-        target: /docker-entrypoint-initdb.d/init-data.sh
-        read_only: true
-    env_file:
-      - .env
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command:
+      - /bin/sh
+      - -c
+      - >-
+        if [ -n "$${REDIS_PASSWORD}" ]; then
+          exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}";
+        else
+          exec redis-server --appendonly yes;
+        fi
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          if [ -n "$${REDIS_PASSWORD}" ]; then
+            redis-cli --no-auth-warning -a "$${REDIS_PASSWORD}" ping;
+          else
+            redis-cli ping;
+          fi
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
 volumes:
-  awesome-nest-db-vol:
-    driver: local
+  postgres-data:
+  redis-data:

@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-import { timingSafeEqual } from 'node:crypto';
-
 import {
   type EntitySubscriberInterface,
   EventSubscriber,
@@ -9,13 +7,15 @@ import {
 } from 'typeorm';
 
 import { generateHash } from '../common/utils';
-import { CacheService } from '../modules/cache/cache.service';
 import { UserEntity } from '../modules/user/user.entity';
 
+/**
+ * Persistence-only user hooks. Keep this subscriber constructor-free because
+ * TypeORM creates configured subscriber classes outside Nest's DI container.
+ * Cache invalidation belongs in the application service performing the write.
+ */
 @EventSubscriber()
 export class UserSubscriber implements EntitySubscriberInterface<UserEntity> {
-  constructor(private readonly cacheService: CacheService) {}
-
   listenTo(): typeof UserEntity {
     return UserEntity;
   }
@@ -26,22 +26,16 @@ export class UserSubscriber implements EntitySubscriberInterface<UserEntity> {
     }
   }
 
-  async beforeUpdate(event: UpdateEvent<UserEntity>): Promise<void> {
-    const entity = event.entity as UserEntity;
-
-    if (entity.id) {
-      const cacheKey = this.cacheService.getUserKey(entity.id);
-      await this.cacheService.delete(cacheKey);
+  beforeUpdate(event: UpdateEvent<UserEntity>): void {
+    if (!event.entity) {
+      return;
     }
 
-    if (entity.password && event.databaseEntity?.password) {
-      const currentHash = Buffer.from(event.databaseEntity.password, 'utf8');
-      const newHash = Buffer.from(entity.password, 'utf8');
+    const entity = event.entity as UserEntity;
+    const databaseEntity: UserEntity | undefined = event.databaseEntity;
 
-      if (
-        currentHash.length !== newHash.length ||
-        !timingSafeEqual(currentHash, newHash)
-      ) {
+    if (entity.password && databaseEntity?.password) {
+      if (entity.password !== databaseEntity.password) {
         entity.password = generateHash(entity.password);
       }
     } else if (entity.password) {

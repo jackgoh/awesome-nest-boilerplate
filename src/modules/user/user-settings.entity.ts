@@ -18,12 +18,12 @@ export class UserSettingsEntity extends AbstractEntity<
   isPhoneVerified?: boolean;
 
   @Column({ type: 'uuid' })
-  userId?: string;
+  userId!: Uuid;
 
   @OneToOne(() => UserEntity, (user) => user.settings, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'user_id' })
-  user?: UserEntity;
+  user!: UserEntity;
 }

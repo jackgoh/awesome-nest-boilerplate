@@ -1,8 +1,19 @@
-import { v1 as uuid } from 'uuid';
+import { randomUUID } from 'node:crypto';
+
+interface IS3PublicUrlConfiguration {
+  bucketRegion: string;
+  bucketName: string;
+}
 
 export class GeneratorProvider {
+  private static s3Config: IS3PublicUrlConfiguration | undefined;
+
+  static configureS3(config: IS3PublicUrlConfiguration): void {
+    GeneratorProvider.s3Config = config;
+  }
+
   static uuid(): string {
-    return uuid();
+    return randomUUID();
   }
 
   static fileName(ext: string): string {
@@ -14,7 +25,9 @@ export class GeneratorProvider {
       throw new TypeError('key is required');
     }
 
-    return `https://s3.${process.env.AWS_S3_BUCKET_NAME_REGION}.amazonaws.com/${process.env.AWS_S3_BUCKET_NAME}/${key}`;
+    const config = GeneratorProvider.getS3Config();
+
+    return `https://s3.${config.bucketRegion}.amazonaws.com/${config.bucketName}/${key}`;
   }
 
   static getS3Key(publicUrl: string): string {
@@ -22,15 +35,14 @@ export class GeneratorProvider {
       throw new TypeError('key is required');
     }
 
-    const exec = new RegExp(
-      `(?<=https://s3.${process.env.AWS_S3_BUCKET_NAME_REGION}.amazonaws.com/${process.env.AWS_S3_BUCKET_NAME}/).*`,
-    ).exec(publicUrl);
+    const config = GeneratorProvider.getS3Config();
+    const urlPrefix = `https://s3.${config.bucketRegion}.amazonaws.com/${config.bucketName}/`;
 
-    if (!exec) {
+    if (!publicUrl.startsWith(urlPrefix)) {
       throw new TypeError('publicUrl is invalid');
     }
 
-    return exec[0];
+    return publicUrl.slice(urlPrefix.length);
   }
 
   static generateVerificationCode(): string {
@@ -62,5 +74,13 @@ export class GeneratorProvider {
       .toString(36)
       .replaceAll(/[^\dA-Za-z]+/g, '')
       .slice(0, Math.max(0, length));
+  }
+
+  private static getS3Config(): IS3PublicUrlConfiguration {
+    if (!GeneratorProvider.s3Config) {
+      throw new Error('S3 URL configuration has not been initialized');
+    }
+
+    return GeneratorProvider.s3Config;
   }
 }

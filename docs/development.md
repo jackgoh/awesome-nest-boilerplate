@@ -1,175 +1,175 @@
 # Setup and development
 
-- [Setup and development](#setup-and-development)
-  - [First-time setup](#first-time-setup)
-  - [Installation](#installation)
-    - [Database](#database)
-    - [Configuration](#configuration)
-    - [Dev server](#dev-server)
-  - [Generators](#generators)
-  - [Docker](#docker)
-    - [Docker installation](#docker-installation)
-    - [Docker-compose installation](#docker-compose-installation)
-    - [Run](#run)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [PostgreSQL and Redis](#postgresql-and-redis)
+- [Database operations](#database-operations)
+- [Development server](#development-server)
+- [Generators](#generators)
+- [Docker image](#docker-image)
 
-## First-time setup
+## Prerequisites
 
-Make sure you have the following installed:
+Install the following tools:
 
-- [Node](https://nodejs.org/en/) (at least the latest LTS)
-- [Yarn](https://yarnpkg.com/lang/en/docs/install/) (at least 1.0)
+- [Node.js](https://nodejs.org/) 24.11 or newer
+- [pnpm](https://pnpm.io/installation) 11.12 or newer
+- [Docker](https://docs.docker.com/get-docker/) with Docker Compose, if you
+  want to run the backing services in containers
+
+Node includes Corepack, which can install the pnpm version pinned by this
+repository:
+
+```bash
+corepack enable
+corepack install
+```
 
 ## Installation
 
+Install exactly the dependency versions recorded in `pnpm-lock.yaml`:
+
 ```bash
-# Install dependencies from package.json
-yarn install
+pnpm install --frozen-lockfile
 ```
 
-> Note: don't delete yarn.lock before installation, See more [in yarn docs](https://classic.yarnpkg.com/en/docs/yarn-lock/)
+Do not delete or manually edit `pnpm-lock.yaml`. Commit lockfile changes made by
+pnpm whenever dependencies change.
 
-### Database
+## Configuration
 
-> Note: Awesome NestJS Boilerplate uses [TypeORM](https://github.com/typeorm/typeorm) with Data Mapper pattern.
+Create a local environment file:
 
-### Configuration
+```bash
+cp .env.example .env
+```
 
-Before start install PostgreSQL and fill correct configurations in `.env` file
+The application validates and converts environment variables during startup.
+Invalid ports, durations, booleans, or missing required values cause startup to
+fail with a configuration error.
+
+The default local service settings are:
 
 ```env
-DB_HOST=localhost
+DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
 DB_DATABASE=nest_boilerplate
+
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
 ```
 
-Some helper script to work with database
+Generate a dedicated JWT RSA key pair for every environment. Never deploy the
+placeholder key material from `.env.example`.
+
+## PostgreSQL and Redis
+
+The application uses PostgreSQL as its database and Redis for caching. Start
+both services with:
 
 ```bash
-# To create new migration file
-yarn migration:create migration_name
-
-# Truncate full database (note: it isn't deleting the database)
-yarn schema:drop
-
-# Generate migration from update of entities
-yarn migration:generate migration_name
+docker compose up -d
+docker compose ps
 ```
 
-#### MySQL
+Compose reads database and Redis port/password values from `.env` and provides
+safe local defaults when they are absent. Both containers include health checks;
+wait for them to report `healthy` before starting the application.
 
-If you need to use MySQL / MariaDB instead of PostgreSQL, follow the steps below:
-> (assuming you have installed mysql in your system and it is running on port 3306)
-1. Make the following entries in the #DB section in `.env` file
-
-```env
-#== DB
-DB_TYPE=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USERNAME=mysql
-DB_PASSWORD=mysql
-DB_DATABASE=nest_boilerplate
-DB_ROOT_PASSWORD=mysql
-DB_ALLOW_EMPTY_PASSWORD=yes
-```
-2. Change the DB in TypeORM to MySQL. You can do that by heading over to the file `ormconfig.ts`.
-```
-...
-export const dataSource = new DataSource({
-  type: 'mysql', // <-- Just write mysql here
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  username: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE,
-  namingStrategy: new SnakeNamingStrategy(),
-  subscribers: [UserSubscriber],
-  entities: [
-    'src/modules/**/*.entity{.ts,.js}',
-    'src/modules/**/*.view-entity{.ts,.js}',
-  ],
-  migrations: ['src/database/migrations/*{.ts,.js}'],
-});
-```
-3. Delete all the files in migrations folder (`src/database/migrations`)
-4. Run the following commands in the root folder of the project, to regenerate the migrations:
-```
-yarn typeorm migration:generate ./src/database/migrations/MySQLMigrations
-```
-
-These steps may work for [other databases](https://typeorm.io/#features) supported by TypeORM. If they work, let us know and we'll add it to the docs!
-
-##### Docker Compose
-After completing the steps above, you can use [this docker-compose file](../docker-compose_mysql.yml) for awesome-nest-boilerplate with MySQL (instead of PostgreSQL).
-
-### Dev server
-
-> Note: If you're on Linux and see an `ENOSPC` error when running the commands below, you must [increase the number of available file watchers](https://stackoverflow.com/questions/22475849/node-js-error-enospc#answer-32600959).
+To stop the services while retaining their data:
 
 ```bash
-# Launch the dev server
-yarn start:dev
-
-# Launch the dev server with file watcher
-yarn watch:dev
-
-# Launch the dev server and enable remote debugger with file watcher
-yarn debug:dev
+docker compose down
 ```
+
+To also delete the local PostgreSQL and Redis data volumes:
+
+```bash
+docker compose down --volumes
+```
+
+## Database operations
+
+This project uses TypeORM with the Data Mapper pattern. Schema synchronization
+is disabled; evolve the database through reviewed migrations.
+
+```bash
+# Create an empty migration
+pnpm migration:create ./src/database/migrations/migration-name
+
+# Generate a migration from entity changes
+pnpm migration:generate ./src/database/migrations/migration-name
+
+# Inspect and run pending migrations
+pnpm migration:show
+pnpm migration:run
+
+# Revert the most recently applied migration
+pnpm migration:revert
+
+# Seed roles and permissions idempotently
+pnpm seed:run
+```
+
+`pnpm schema:drop` is intentionally destructive and should only be used against
+an expendable local or test database.
+
+## Development server
+
+```bash
+# Start once
+pnpm start:dev
+
+# Rebuild and restart when files change
+pnpm watch:dev
+
+# Watch with the Node debugger enabled
+pnpm debug:dev
+```
+
+The API is available at <http://localhost:3000> by default. When documentation
+is enabled, Swagger is available at <http://localhost:3000/documentation>.
+
+Run the complete local verification suite before opening a pull request:
+
+```bash
+pnpm verify
+```
+
+The complete suite includes database-backed end-to-end and CLS rollback tests.
+Start PostgreSQL and Redis, replace the JWT placeholders in `.env`, then run
+`pnpm migration:run` and `pnpm seed:run` before `pnpm verify`.
 
 ## Generators
 
-This project includes generators to speed up common development tasks. Commands include:
-
-> Note: Make sure you already have the nest-cli globally installed
-
-```bash
-# Install nest-cli globally
-yarn global add @nestjs/cli
-
-# Generate a new service
-nest generate service users
-
-# Generate a new class
-nest g class users
-
-```
-> Note: if you love generators then you can find full list of command in official [Nest-cli Docs](https://docs.nestjs.com/cli/usages#generate-alias-g).
-
-## Docker
-
-if you are familiar with [docker](https://www.docker.com/) and [docker-compose](https://docs.docker.com/compose) then you can run built in docker-compose file, which will install and configure application and database for you.
-
-### Docker installation
-
-Download docker from Official website
-
-- Mac <https://docs.docker.com/docker-for-mac/install/>
-- Windows <https://docs.docker.com/docker-for-windows/install/>
-- Ubuntu <https://docs.docker.com/install/linux/docker-ce/ubuntu/>
-
-### Docker-compose installation
-
-Download docker from [Official website](https://docs.docker.com/compose/install)
-
-### Run
-
-Open terminal and navigate to project directory and run the following command.
+The Nest CLI is installed as a project development dependency, so no global
+installation is needed:
 
 ```bash
-PORT=3000 docker-compose up
+pnpm exec nest generate service users
+pnpm exec nest generate class users
 ```
 
-> Note: application will run on port 3000 (<http://localhost:3000>)
+See the [Nest CLI documentation](https://docs.nestjs.com/cli/usages) for the
+available generators.
 
-Navigate to <http://localhost:8080> and connect to you database with the following configurations
+## Docker image
 
-```text
-host: postgres
-user: postgres
-pass: postgres
+Build the production image from the repository root:
+
+```bash
+docker build --tag awesome-nest-boilerplate .
 ```
 
-create database `nest_boilerplate` and your application fully is ready to use.
+The image uses Node.js 24.11, installs frozen pnpm dependencies in separate
+build stages, contains only the compiled application and production
+dependencies, and runs as the unprivileged `node` user.
+
+The Compose file intentionally runs only PostgreSQL and Redis. Run the API on
+the host during development, or deploy the application image using your
+environment's container platform and secret management.

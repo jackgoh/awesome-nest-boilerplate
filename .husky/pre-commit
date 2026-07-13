@@ -1,6 +1,4 @@
-#!/bin/sh
-
 # Run lint-staged (ESLint auto-fix, Prettier auto-format, TypeScript check on staged files)
-yarn lint-staged
+pnpm exec lint-staged
 
 echo "✅ Pre-commit checks passed!"

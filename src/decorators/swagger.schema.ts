@@ -3,22 +3,26 @@ import {
   PARAMTYPES_METADATA,
   ROUTE_ARGS_METADATA,
 } from '@nestjs/common/constants';
-import { RouteParamtypes } from '@nestjs/common/enums/route-paramtypes.enum';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiBody,
+  type ApiBodyOptions,
   ApiConsumes,
   ApiExtraModels,
   getSchemaPath,
 } from '@nestjs/swagger';
-import {
-  type ReferenceObject,
-  type SchemaObject,
-} from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import { reverseObjectKeys } from '@nestjs/swagger/dist/utils/reverse-object-keys.util';
 import _ from 'lodash';
 
 import { type IApiFile } from '../interfaces';
+
+type ApiBodySchema = Extract<ApiBodyOptions, { schema: unknown }>['schema'];
+
+interface IRouteArgumentMetadata {
+  data?: string;
+  index: number;
+}
+
+const BODY_ROUTE_PARAM_TYPE = 3;
 
 function explore(instance: object, propertyKey: string | symbol) {
   const types: Array<Type<unknown>> = Reflect.getMetadata(
@@ -27,26 +31,17 @@ function explore(instance: object, propertyKey: string | symbol) {
     propertyKey,
   );
   const routeArgsMetadata =
-    Reflect.getMetadata(
+    (Reflect.getMetadata(
       ROUTE_ARGS_METADATA,
       instance.constructor,
       propertyKey,
-    ) || {};
+    ) as Record<string, IRouteArgumentMetadata> | undefined) ?? {};
 
-  const parametersWithType = _.mapValues(
-    reverseObjectKeys(routeArgsMetadata),
-    (param) => ({
-      type: types[param.index],
-      name: param.data,
-      required: true,
-    }),
-  );
-
-  for (const [key, value] of Object.entries(parametersWithType)) {
+  for (const [key, parameter] of Object.entries(routeArgsMetadata).reverse()) {
     const keyPair = key.split(':');
 
-    if (Number(keyPair[0]) === RouteParamtypes.BODY) {
-      return value.type;
+    if (Number(keyPair[0]) === BODY_ROUTE_PARAM_TYPE) {
+      return types[parameter.index];
     }
   }
 }
@@ -65,11 +60,11 @@ function ApiFileDecorator(
 ): MethodDecorator {
   return (target, propertyKey, descriptor: PropertyDescriptor) => {
     const { isRequired = false } = options;
-    const fileSchema: SchemaObject = {
+    const fileSchema: ApiBodySchema = {
       type: 'string',
       format: 'binary',
     };
-    const properties: Record<string, SchemaObject | ReferenceObject> = {};
+    const properties: Record<string, ApiBodySchema> = {};
 
     for (const file of files) {
       properties[file.name] = file.isArray
@@ -80,7 +75,7 @@ function ApiFileDecorator(
         : fileSchema;
     }
 
-    let schema: SchemaObject = {
+    let schema: ApiBodySchema = {
       properties,
       type: 'object',
     };

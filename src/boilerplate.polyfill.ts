@@ -1,5 +1,3 @@
-import 'source-map-support/register';
-
 import { compact, map } from 'lodash';
 import { Brackets, type ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 

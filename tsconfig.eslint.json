@@ -1,5 +1,9 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": ["node", "jest"]
+  },
   "include": ["src/**/*.ts", "*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "dist", ".eslint.config.mjs"]
 }
