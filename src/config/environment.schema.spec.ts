@@ -11,6 +11,8 @@ const validEnvironment = (): Record<string, unknown> => ({
     '-----BEGIN PRIVATE KEY-----\\nprivate\\n-----END PRIVATE KEY-----',
   JWT_PUBLIC_KEY:
     '-----BEGIN PUBLIC KEY-----\\npublic\\n-----END PUBLIC KEY-----',
+  JWT_ISSUER: 'awesome-nest-boilerplate-test',
+  JWT_AUDIENCE: 'awesome-nest-api-test',
   DB_HOST: 'localhost',
   DB_USERNAME: 'postgres',
   DB_PASSWORD: 'postgres',

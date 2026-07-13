@@ -36,6 +36,8 @@ jobs:
           --health-retries 10
     env:
       NODE_ENV: test
+      JWT_ISSUER: awesome-nest-boilerplate-test
+      JWT_AUDIENCE: awesome-nest-api-test
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
       DB_USERNAME: postgres

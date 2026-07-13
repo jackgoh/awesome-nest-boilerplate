@@ -129,6 +129,8 @@ export const environmentSchema = z
 
     JWT_PRIVATE_KEY: privateKeyFromEnvironment,
     JWT_PUBLIC_KEY: publicKeyFromEnvironment,
+    JWT_ISSUER: z.string().trim().min(1),
+    JWT_AUDIENCE: z.string().trim().min(1),
     JWT_EXPIRATION_TIME: positiveIntegerFromEnvironment.default(900),
     JWT_REFRESH_EXPIRATION_TIME:
       positiveIntegerFromEnvironment.default(604_800),

@@ -19,6 +19,8 @@ export interface IApplicationConfiguration {
   auth: {
     privateKey: string;
     publicKey: string;
+    issuer: string;
+    audience: string;
     jwtExpirationTime: number;
     jwtRefreshExpirationTime: number;
   };
@@ -75,6 +77,8 @@ export function createConfiguration(
     auth: {
       privateKey: expandEscapedNewlines(environment.JWT_PRIVATE_KEY),
       publicKey: expandEscapedNewlines(environment.JWT_PUBLIC_KEY),
+      issuer: environment.JWT_ISSUER,
+      audience: environment.JWT_AUDIENCE,
       jwtExpirationTime: environment.JWT_EXPIRATION_TIME,
       jwtRefreshExpirationTime: environment.JWT_REFRESH_EXPIRATION_TIME,
     },

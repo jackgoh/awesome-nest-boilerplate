@@ -38,6 +38,11 @@ JSON and never creates authentication cookies. Access tokens are accepted only
 from the `Authorization` header. Refresh and logout requests carry the refresh
 token in a validated JSON body.
 
+Both token types use RS256 and require the configured issuer and audience.
+Runtime claim validation rejects missing or unknown claims. `sub` identifies the
+user, `jti` identifies the individual token, and `sid` identifies the login and
+refresh-token family shared by its access and refresh tokens.
+
 Each login creates a refresh-token family. Rotation compares and replaces the
 active token through one Redis script. A replayed token revokes every active
 token in its family. Logout also validates that the refresh-token subject

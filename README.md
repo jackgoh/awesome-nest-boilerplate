@@ -147,7 +147,9 @@ JSON body for `/auth/refresh` and `/auth/logout`.
 
 Authentication is global and default-deny. Only endpoints marked with the
 `@Public()` decorator bypass JWT validation. Refresh tokens rotate atomically in
-Redis, and replaying a consumed token revokes the active token family.
+Redis, and replaying a consumed token revokes the active token family. JWTs use
+RS256, validate an environment-specific issuer and audience, and enforce strict
+access- and refresh-claim contracts built around `sub`, `jti`, and `sid`.
 
 ## 🔧 Code Quality & Git Hooks
 

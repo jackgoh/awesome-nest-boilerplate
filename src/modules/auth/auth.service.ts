@@ -12,17 +12,11 @@ import { type UserEntity } from '../user/user.entity';
 import { UserService } from '../user/user.service';
 import { TokenPayloadDto } from './dto/token-payload.dto';
 import { type UserLoginDto } from './dto/user-login.dto';
+import { refreshTokenClaimsSchema } from './jwt-claims';
 
 interface ITokenSubject {
   userId: Uuid;
   roles: RoleEntity[];
-}
-
-interface IRefreshTokenClaims {
-  userId: Uuid;
-  type: TokenType;
-  tokenId: string;
-  familyId: string;
 }
 
 interface ISignedTokens {
@@ -32,23 +26,6 @@ interface ISignedTokens {
 
 function hashRefreshToken(refreshToken: string): string {
   return createHash('sha256').update(refreshToken).digest('hex');
-}
-
-function isRefreshTokenClaims(
-  payload: unknown,
-): payload is IRefreshTokenClaims {
-  if (!payload || typeof payload !== 'object') {
-    return false;
-  }
-
-  const claims = payload as Partial<IRefreshTokenClaims>;
-
-  return (
-    claims.type === TokenType.REFRESH_TOKEN &&
-    typeof claims.userId === 'string' &&
-    typeof claims.tokenId === 'string' &&
-    typeof claims.familyId === 'string'
-  );
 }
 
 @Injectable()
@@ -80,12 +57,15 @@ export class AuthService {
     familyId: string,
   ): Promise<ISignedTokens> {
     const tokenId = randomUUID();
+    const accessTokenId = randomUUID();
     const roleNames = data.roles.map((role) => role.name);
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
         {
-          userId: data.userId,
+          sub: data.userId,
+          jti: accessTokenId,
+          sid: familyId,
           type: TokenType.ACCESS_TOKEN,
           roles: roleNames,
         },
@@ -95,10 +75,10 @@ export class AuthService {
       ),
       this.jwtService.signAsync(
         {
-          userId: data.userId,
+          sub: data.userId,
+          jti: tokenId,
+          sid: familyId,
           type: TokenType.REFRESH_TOKEN,
-          tokenId,
-          familyId,
         },
         {
           expiresIn: this.configService.authConfig.jwtRefreshExpirationTime,
@@ -125,12 +105,16 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    if (!isRefreshTokenClaims(payload)) {
+    const claimsResult = refreshTokenClaimsSchema.safeParse(payload);
+
+    if (!claimsResult.success) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
+    const claims = claimsResult.data;
+
     const user = await this.userService.findOne({
-      where: { id: payload.userId },
+      where: { id: claims.sub },
       relations: { roles: true },
     });
 
@@ -140,22 +124,19 @@ export class AuthService {
 
     const replacement = await this.signTokens(
       { userId: user.id, roles: user.roles },
-      payload.familyId,
+      claims.sid,
     );
     const isRotated = await this.cacheService.rotateRefreshToken({
-      userId: payload.userId,
-      familyId: payload.familyId,
-      currentTokenId: payload.tokenId,
+      userId: claims.sub,
+      familyId: claims.sid,
+      currentTokenId: claims.jti,
       currentTokenHash: hashRefreshToken(refreshToken),
       replacementTokenId: replacement.tokenId,
       replacementTokenHash: hashRefreshToken(replacement.tokens.refreshToken),
     });
 
     if (!isRotated) {
-      await this.cacheService.revokeRefreshTokenFamily(
-        payload.userId,
-        payload.familyId,
-      );
+      await this.cacheService.revokeRefreshTokenFamily(claims.sub, claims.sid);
 
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -194,13 +175,14 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    if (!isRefreshTokenClaims(payload) || payload.userId !== userId) {
+    const claimsResult = refreshTokenClaimsSchema.safeParse(payload);
+
+    if (!claimsResult.success || claimsResult.data.sub !== userId) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    await this.cacheService.revokeRefreshTokenFamily(
-      payload.userId,
-      payload.familyId,
-    );
+    const claims = claimsResult.data;
+
+    await this.cacheService.revokeRefreshTokenFamily(claims.sub, claims.sid);
   }
 }

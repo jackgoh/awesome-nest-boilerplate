@@ -20,10 +20,13 @@ import { JwtStrategy } from './jwt.strategy';
         publicKey: configService.authConfig.publicKey,
         signOptions: {
           algorithm: 'RS256',
-          //     expiresIn: configService.getNumber('JWT_EXPIRATION_TIME'),
+          issuer: configService.authConfig.issuer,
+          audience: configService.authConfig.audience,
         },
         verifyOptions: {
           algorithms: ['RS256'],
+          issuer: configService.authConfig.issuer,
+          audience: configService.authConfig.audience,
         },
       }),
       inject: [ApiConfigService],

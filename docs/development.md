@@ -71,7 +71,10 @@ TRUST_PROXY_HOPS=0
 ```
 
 Generate a dedicated JWT RSA key pair for every environment. Never deploy the
-placeholder key material from `.env.example`.
+placeholder key material from `.env.example`. Set `JWT_ISSUER` to the service
+that creates tokens and `JWT_AUDIENCE` to the API that accepts them. Use distinct
+values per environment so a token issued for one deployment cannot be replayed
+against another.
 
 The API uses bearer authentication and does not set authentication cookies.
 Public routes must be explicitly marked with `@Public()`. The default global

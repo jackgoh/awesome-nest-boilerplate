@@ -26,10 +26,14 @@ describe('AuthService', () => {
   const userId = '57f9af62-eabc-4ee8-9a1c-b010a51ae31e' as Uuid;
   const role = { name: 'user' } as RoleEntity;
   const currentClaims = {
-    userId,
+    sub: userId,
+    jti: '0428b4df-e191-4c0d-b5aa-95cc43eab8aa',
+    sid: 'ab8f0de7-91ee-4994-b811-79651e28217a',
+    iss: 'awesome-nest-boilerplate-test',
+    aud: 'awesome-nest-api-test',
+    iat: 1_700_000_000,
+    exp: 1_700_604_800,
     type: TokenType.REFRESH_TOKEN,
-    tokenId: 'current-token-id',
-    familyId: 'refresh-family-id',
   };
 
   let service: AuthService;
@@ -60,6 +64,8 @@ describe('AuthService', () => {
     };
     const configService = {
       authConfig: {
+        issuer: 'awesome-nest-boilerplate-test',
+        audience: 'awesome-nest-api-test',
         jwtExpirationTime: 900,
         jwtRefreshExpirationTime: 604_800,
       },
@@ -87,6 +93,25 @@ describe('AuthService', () => {
       expect.any(String),
       createHash('sha256').update('signed-refresh-token').digest('hex'),
     );
+    expect(jwtService.signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sub: userId,
+        jti: expect.any(String),
+        sid: expect.any(String),
+        type: TokenType.ACCESS_TOKEN,
+        roles: ['user'],
+      }),
+      { expiresIn: 900 },
+    );
+    expect(jwtService.signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sub: userId,
+        jti: expect.any(String),
+        sid: expect.any(String),
+        type: TokenType.REFRESH_TOKEN,
+      }),
+      { expiresIn: 604_800 },
+    );
   });
 
   it('atomically rotates a valid refresh token in the same family', async () => {
@@ -99,8 +124,8 @@ describe('AuthService', () => {
     expect(cacheService.rotateRefreshToken).toHaveBeenCalledWith(
       expect.objectContaining({
         userId,
-        familyId: currentClaims.familyId,
-        currentTokenId: currentClaims.tokenId,
+        familyId: currentClaims.sid,
+        currentTokenId: currentClaims.jti,
         currentTokenHash: createHash('sha256')
           .update('current-refresh-token')
           .digest('hex'),
@@ -117,7 +142,7 @@ describe('AuthService', () => {
     ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(cacheService.revokeRefreshTokenFamily).toHaveBeenCalledWith(
       userId,
-      currentClaims.familyId,
+      currentClaims.sid,
     );
   });
 
@@ -135,13 +160,13 @@ describe('AuthService', () => {
 
     expect(cacheService.revokeRefreshTokenFamily).toHaveBeenCalledWith(
       userId,
-      currentClaims.familyId,
+      currentClaims.sid,
     );
   });
 
   it('rejects malformed refresh-token claims', async () => {
     jwtService.verifyAsync.mockResolvedValue({
-      userId,
+      sub: userId,
       type: TokenType.ACCESS_TOKEN,
     });
 
