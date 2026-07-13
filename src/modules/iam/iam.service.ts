@@ -185,34 +185,4 @@ export class IAMService {
 
     return rows.map(({ id }) => id);
   }
-
-  // --- Utility ---
-
-  /**
-   * Retrieves all unique permission names associated with a user through their roles.
-   * @param userId The ID of the user.
-   * @returns A promise resolving to an array of unique permission names.
-   */
-  async getPermissionsForUser(userId: Uuid): Promise<string[]> {
-    const user = await this.txHost.tx
-      .getRepository(UserEntity)
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.roles', 'role')
-      .leftJoinAndSelect('role.permissions', 'rolePermission')
-      .leftJoinAndSelect('user.directPermissions', 'directPermission')
-      .where('user.id = :userId', { userId })
-      .getOne();
-
-    if (!user) {
-      return [];
-    }
-
-    const rolePermissions = user.roles.flatMap((role) =>
-      role.permissions.map((p) => p.name),
-    );
-
-    const directPermissions = user.directPermissions?.map((p) => p.name) || [];
-
-    return [...new Set([...rolePermissions, ...directPermissions])];
-  }
 }

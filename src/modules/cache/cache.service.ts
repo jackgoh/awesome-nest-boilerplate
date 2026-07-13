@@ -108,10 +108,6 @@ export class CacheService {
     await this.redisClient.del(key);
   }
 
-  getUserPermissionsKey(userId: Uuid): string {
-    return `user_permissions:${userId}`;
-  }
-
   getUserAuthorizationVersionKey(userId: Uuid): string {
     return getUserAuthorizationVersionKey(userId);
   }
