@@ -5,8 +5,11 @@ import bcrypt from 'bcrypt';
  * @param {string} password
  * @returns {string}
  */
-export function generateHash(password: string): string {
-  return bcrypt.hashSync(password, 10);
+export function generateHash(
+  password: string,
+  rounds: number,
+): Promise<string> {
+  return bcrypt.hash(password, rounds);
 }
 
 /**

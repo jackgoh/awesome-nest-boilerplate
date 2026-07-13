@@ -9,6 +9,7 @@ import { TokenType } from '../../constants';
 import { ApiConfigService } from '../../shared/services/api-config.service';
 import { CacheService } from '../cache/cache.service';
 import { type RoleEntity } from '../iam/entities/role.entity';
+import { UserLifecycleService } from '../iam/user-lifecycle.service';
 import { AccountStatus } from '../user/account-status.enum';
 import { AccountAccessStateService } from '../user/account-access-state.service';
 import { type UserEntity } from '../user/user.entity';
@@ -40,6 +41,7 @@ export class AuthService {
     private userService: UserService,
     private cacheService: CacheService,
     private accountAccessStateService: AccountAccessStateService,
+    private userLifecycleService: UserLifecycleService,
   ) {}
 
   async createTokens(data: ITokenSubject): Promise<TokenPayloadDto> {
@@ -120,7 +122,14 @@ export class AuthService {
 
     const claims = claimsResult.data;
 
-    await this.accountAccessStateService.requireActive(claims.sub, claims.sv);
+    try {
+      await this.accountAccessStateService.requireActive(claims.sub, claims.sv);
+    } catch {
+      await this.cacheService
+        .revokeSession(claims.sub, claims.sid)
+        .catch(() => undefined);
+      throw new UnauthorizedException('Invalid refresh token');
+    }
 
     const user = await this.userService.findOne({
       where: { id: claims.sub },
@@ -203,7 +212,21 @@ export class AuthService {
     await this.cacheService.revokeSession(claims.sub, claims.sid);
   }
 
-  async logoutAll(userId: Uuid): Promise<void> {
-    await this.cacheService.revokeUserSessions(userId);
+  logoutAll(userId: Uuid, correlationId: Uuid): Promise<void> {
+    return this.userLifecycleService.revokeOwnSessions(userId, correlationId);
+  }
+
+  changePassword(
+    userId: Uuid,
+    currentPassword: string,
+    newPassword: string,
+    correlationId: Uuid,
+  ): Promise<void> {
+    return this.userLifecycleService.changePassword(
+      userId,
+      currentPassword,
+      newPassword,
+      correlationId,
+    );
   }
 }

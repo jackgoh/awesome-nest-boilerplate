@@ -37,6 +37,7 @@ describe('environment configuration', () => {
       CORS_ORIGINS: ['https://app.example.com', 'https://admin.example.com'],
       REDIS_DB: 0,
       JWT_REFRESH_EXPIRATION_TIME: 604_800,
+      BCRYPT_ROUNDS: 12,
       THROTTLER_TTL: 60_000,
     });
   });
@@ -85,6 +86,12 @@ describe('environment configuration', () => {
         JWT_REFRESH_EXPIRATION_TIME: '900',
       }),
     ).toThrow(/JWT_REFRESH_EXPIRATION_TIME:/);
+  });
+
+  it('rejects unsafe bcrypt work factors', () => {
+    expect(() =>
+      validateEnvironment({ ...validEnvironment(), BCRYPT_ROUNDS: '9' }),
+    ).toThrow(/BCRYPT_ROUNDS:/);
   });
 
   it('uses deterministic environment-file precedence and isolates production', () => {

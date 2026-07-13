@@ -12,6 +12,7 @@ import { type AuthorizationChangedPayload } from './outbox.service';
 
 const DISPATCH_INTERVAL_MS = 1_000;
 const MAX_BACKOFF_SECONDS = 300;
+const OUTBOX_SLO_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class OutboxDispatcherService
@@ -61,6 +62,12 @@ export class OutboxDispatcherService
           .getMany();
 
         for (const event of events) {
+          if (Date.now() - event.occurredAt.getTime() > OUTBOX_SLO_MS) {
+            this.logger.warn(
+              `Outbox event ${event.id} is older than the five-minute delivery SLO`,
+            );
+          }
+
           try {
             await this.deliver(event);
             event.processedAt = new Date();

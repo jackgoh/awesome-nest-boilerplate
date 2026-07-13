@@ -25,6 +25,10 @@ const portFromEnvironment = integerFromEnvironment.pipe(
   z.number().int().positive().max(65_535),
 );
 
+const bcryptRoundsFromEnvironment = integerFromEnvironment.pipe(
+  z.number().int().min(10).max(15),
+);
+
 const corsOriginsFromEnvironment = z.preprocess((value) => {
   const normalized = emptyStringToUndefined(value);
 
@@ -132,6 +136,7 @@ export const environmentSchema = z
     JWT_EXPIRATION_TIME: positiveIntegerFromEnvironment.default(900),
     JWT_REFRESH_EXPIRATION_TIME:
       positiveIntegerFromEnvironment.default(604_800),
+    BCRYPT_ROUNDS: bcryptRoundsFromEnvironment.default(12),
 
     DB_HOST: z.string().trim().min(1),
     DB_PORT: portFromEnvironment.default(5432),

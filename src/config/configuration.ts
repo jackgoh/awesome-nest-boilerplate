@@ -21,6 +21,7 @@ export interface IApplicationConfiguration {
     audience: string;
     jwtExpirationTime: number;
     jwtRefreshExpirationTime: number;
+    bcryptRounds: number;
   };
   database: {
     host: string;
@@ -75,6 +76,7 @@ export function createConfiguration(
       audience: environment.JWT_AUDIENCE,
       jwtExpirationTime: environment.JWT_EXPIRATION_TIME,
       jwtRefreshExpirationTime: environment.JWT_REFRESH_EXPIRATION_TIME,
+      bcryptRounds: environment.BCRYPT_ROUNDS,
     },
     database: {
       host: environment.DB_HOST,

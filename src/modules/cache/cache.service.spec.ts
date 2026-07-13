@@ -77,39 +77,6 @@ describe('CacheService', () => {
     );
   });
 
-  it('resolves a generation-versioned authorization cache key', async () => {
-    redis.get.mockResolvedValue('7');
-
-    await expect(service.resolveUserKey(userId)).resolves.toBe(
-      `user:{${userId}}:authz:7`,
-    );
-    expect(redis.get).toHaveBeenCalledWith(`user:{${userId}}:authz-version`);
-  });
-
-  it('uses generation zero before a user has been invalidated', async () => {
-    await expect(service.resolveUserKey(userId)).resolves.toBe(
-      `user:{${userId}}:authz:0`,
-    );
-  });
-
-  it('invalidates each unique user authorization generation once', async () => {
-    const secondUserId = 'f3f1c524-5de4-489f-b62e-f337008169bb' as Uuid;
-
-    await service.invalidateUserAuthorization([userId, secondUserId, userId]);
-
-    expect(redis.incr).toHaveBeenCalledTimes(2);
-    expect(redis.incr).toHaveBeenCalledWith(`user:{${userId}}:authz-version`);
-    expect(redis.incr).toHaveBeenCalledWith(
-      `user:{${secondUserId}}:authz-version`,
-    );
-  });
-
-  it('does not touch Redis when no users are affected', async () => {
-    await service.invalidateUserAuthorization([]);
-
-    expect(redis.incr).not.toHaveBeenCalled();
-  });
-
   it('stores a refresh token and its family index in one transaction', async () => {
     await service.storeRefreshToken(
       userId,

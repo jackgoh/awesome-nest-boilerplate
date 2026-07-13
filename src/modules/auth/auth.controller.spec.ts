@@ -1,5 +1,6 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ClsService } from 'nestjs-cls';
 
 import { type Uuid } from '../../types';
 import { type AuthenticatedUser } from '../../types/auth-user.type';
@@ -89,6 +90,7 @@ describe('AuthController', () => {
     refreshAccessToken: jest.fn(),
     logout: jest.fn(),
     logoutAll: jest.fn(),
+    changePassword: jest.fn(),
   };
 
   const mockUserService = {
@@ -107,6 +109,14 @@ describe('AuthController', () => {
         {
           provide: UserService,
           useValue: mockUserService,
+        },
+        {
+          provide: ClsService,
+          useValue: {
+            getId: jest
+              .fn()
+              .mockReturnValue('019f5ce3-cccb-7631-a9a1-cbacc12fb192'),
+          },
         },
       ],
     }).compile();
@@ -239,7 +249,10 @@ describe('AuthController', () => {
       await expect(controller.logoutAll(mockUser)).resolves.toEqual({
         message: 'Successfully logged out from all sessions',
       });
-      expect(authService.logoutAll).toHaveBeenCalledWith(mockUser.id);
+      expect(authService.logoutAll).toHaveBeenCalledWith(
+        mockUser.id,
+        '019f5ce3-cccb-7631-a9a1-cbacc12fb192',
+      );
     });
   });
 

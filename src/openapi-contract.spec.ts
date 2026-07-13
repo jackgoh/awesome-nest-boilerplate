@@ -1,9 +1,11 @@
 import { type INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Test } from '@nestjs/testing';
+import { ClsService } from 'nestjs-cls';
 
 import { IAMController } from './modules/iam/iam.controller';
 import { IAMService } from './modules/iam/iam.service';
+import { UserLifecycleService } from './modules/iam/user-lifecycle.service';
 import { UserController } from './modules/user/user.controller';
 import { UserService } from './modules/user/user.service';
 
@@ -15,6 +17,8 @@ describe('OpenAPI contract', () => {
       controllers: [IAMController, UserController],
       providers: [
         { provide: IAMService, useValue: {} },
+        { provide: UserLifecycleService, useValue: {} },
+        { provide: ClsService, useValue: { getId: jest.fn() } },
         { provide: UserService, useValue: {} },
       ],
     }).compile();
@@ -68,22 +72,19 @@ describe('OpenAPI contract', () => {
     );
 
     expect(document.paths['/iam/roles']?.post?.responses).toMatchObject({
-      201: { description: 'Successfully created role' },
+      201: { description: 'Created custom role' },
     });
     expect(document.paths['/iam/roles']?.post?.responses).not.toHaveProperty(
       '200',
     );
     expect(document.paths['/iam/roles/{id}']?.delete?.responses).toMatchObject({
-      204: { description: 'Successfully deleted role' },
+      204: { description: 'Deleted custom role' },
+      403: { description: 'System role is protected' },
+      409: { description: 'Role still has assigned members' },
     });
     expect(
       document.paths['/iam/roles/{id}']?.delete?.responses,
     ).not.toHaveProperty('200');
-    expect(document.paths['/iam/permissions']?.post?.responses).toMatchObject({
-      201: { description: 'Successfully created permission' },
-    });
-    expect(
-      document.paths['/iam/permissions']?.post?.responses,
-    ).not.toHaveProperty('200');
+    expect(document.paths['/iam/permissions']?.post).toBeUndefined();
   });
 });

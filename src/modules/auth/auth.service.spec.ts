@@ -8,6 +8,7 @@ import { type ApiConfigService } from '../../shared/services/api-config.service'
 import { type Uuid } from '../../types';
 import { type CacheService } from '../cache/cache.service';
 import { type RoleEntity } from '../iam/entities/role.entity';
+import { type UserLifecycleService } from '../iam/user-lifecycle.service';
 import { AccountStatus } from '../user/account-status.enum';
 import { type AccountAccessStateService } from '../user/account-access-state.service';
 import { type UserService } from '../user/user.service';
@@ -45,6 +46,10 @@ describe('AuthService', () => {
   let cacheService: ICacheServiceMock;
   let userService: { findOne: jest.Mock };
   let accountAccessStateService: { requireActive: jest.Mock };
+  let userLifecycleService: {
+    revokeOwnSessions: jest.Mock;
+    changePassword: jest.Mock;
+  };
 
   beforeEach(() => {
     jwtService = {
@@ -80,6 +85,10 @@ describe('AuthService', () => {
         sessionVersion: 1,
       }),
     };
+    userLifecycleService = {
+      revokeOwnSessions: jest.fn().mockResolvedValue(undefined),
+      changePassword: jest.fn().mockResolvedValue(undefined),
+    };
     const configService = {
       authConfig: {
         issuer: 'awesome-nest-boilerplate-test',
@@ -95,6 +104,7 @@ describe('AuthService', () => {
       userService as unknown as UserService,
       cacheService as unknown as CacheService,
       accountAccessStateService as unknown as AccountAccessStateService,
+      userLifecycleService as unknown as UserLifecycleService,
     );
   });
 
@@ -175,6 +185,21 @@ describe('AuthService', () => {
     );
   });
 
+  it('best-effort revokes a family when its durable session version is stale', async () => {
+    accountAccessStateService.requireActive.mockRejectedValue(
+      new UnauthorizedException(),
+    );
+
+    await expect(
+      service.refreshAccessToken('stale-refresh-token'),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(cacheService.revokeSession).toHaveBeenCalledWith(
+      userId,
+      currentClaims.sid,
+    );
+    expect(cacheService.rotateRefreshToken).not.toHaveBeenCalled();
+  });
+
   it('rejects logout when the refresh token belongs to another user', async () => {
     const authenticatedUserId = 'f3f1c524-5de4-489f-b62e-f337008169bb' as Uuid;
 
@@ -205,9 +230,14 @@ describe('AuthService', () => {
   });
 
   it('revokes every session owned by a user', async () => {
-    await service.logoutAll(userId);
+    const correlationId = '019f5ce3-cccb-7631-a9a1-cbacc12fb192' as Uuid;
 
-    expect(cacheService.revokeUserSessions).toHaveBeenCalledWith(userId);
+    await service.logoutAll(userId, correlationId);
+
+    expect(userLifecycleService.revokeOwnSessions).toHaveBeenCalledWith(
+      userId,
+      correlationId,
+    );
   });
 
   it('rejects malformed refresh-token claims', async () => {

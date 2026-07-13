@@ -10,9 +10,11 @@ import { type FindOneOptions, type Repository } from 'typeorm';
 
 import { PageDto } from '../../common/dto/page.dto';
 import { PageMetaDto } from '../../common/dto/page-meta.dto';
+import { generateHash } from '../../common/utils';
 import { FileNotImageException, UserNotFoundException } from '../../exceptions';
 import { type IFile } from '../../interfaces';
 import { AwsS3Service } from '../../shared/services/aws-s3.service';
+import { ApiConfigService } from '../../shared/services/api-config.service';
 import { ValidatorService } from '../../shared/services/validator.service';
 import { UserRegisterDto } from '../auth/dto/user-register.dto';
 import { IAMService } from '../iam/iam.service';
@@ -31,6 +33,7 @@ export class UserService {
     private validatorService: ValidatorService,
     private awsS3Service: AwsS3Service,
     private iamService: IAMService,
+    private configService: ApiConfigService,
   ) {}
 
   /**
@@ -58,6 +61,11 @@ export class UserService {
     file?: IFile,
   ): Promise<UserEntity> {
     const user = this.userRepository.create(userRegisterDto);
+
+    user.password = await generateHash(
+      userRegisterDto.password,
+      this.configService.authConfig.bcryptRounds,
+    );
 
     if (file && !this.validatorService.isImage(file.mimetype)) {
       throw new FileNotImageException();
@@ -101,6 +109,7 @@ export class UserService {
       'user.firstName',
       'user.lastName',
       'user.email',
+      'user.status',
       'user.createdAt',
     ]);
     queryBuilder.leftJoin('user.roles', 'roles');

@@ -1,11 +1,5 @@
-import {
-  type EntitySubscriberInterface,
-  EventSubscriber,
-  type InsertEvent,
-  type UpdateEvent,
-} from 'typeorm';
+import { type EntitySubscriberInterface, EventSubscriber } from 'typeorm';
 
-import { generateHash } from '../common/utils';
 import { UserEntity } from '../modules/user/user.entity';
 
 /**
@@ -19,31 +13,9 @@ export class UserSubscriber implements EntitySubscriberInterface<UserEntity> {
     return UserEntity;
   }
 
-  beforeInsert(event: InsertEvent<UserEntity>): void {
-    if (event.entity.password) {
-      event.entity.password = generateHash(event.entity.password);
-    }
-  }
-
-  beforeUpdate(event: UpdateEvent<UserEntity>): void {
-    if (!event.entity) {
-      return;
-    }
-
-    const entity = event.entity as UserEntity;
-    const databaseEntity = event.databaseEntity;
-
-    if (entity.password && databaseEntity.password) {
-      if (entity.password !== databaseEntity.password) {
-        entity.password = generateHash(entity.password);
-      }
-    } else if (entity.password) {
-      entity.password = generateHash(entity.password);
-    }
-  }
-
   afterLoad(entity: UserEntity): void {
-    const rolePermissions = entity.roles.flatMap((role) =>
+    const roles = (entity as Partial<UserEntity>).roles ?? [];
+    const rolePermissions = roles.flatMap((role) =>
       role.permissions.map((permission) => permission.name),
     );
 

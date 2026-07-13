@@ -5,6 +5,7 @@ import { PageDto } from '../../common/dto/page.dto';
 import { PageMetaDto } from '../../common/dto/page-meta.dto';
 import { Order } from '../../constants';
 import { type AwsS3Service } from '../../shared/services/aws-s3.service';
+import { type ApiConfigService } from '../../shared/services/api-config.service';
 import { type ValidatorService } from '../../shared/services/validator.service';
 import { type IAMService } from '../iam/iam.service';
 import { UsersPageOptionsDto } from './dtos/users-page-options.dto';
@@ -61,6 +62,9 @@ describe('UserService', () => {
       {} as unknown as ValidatorService,
       {} as unknown as AwsS3Service,
       {} as unknown as IAMService,
+      {
+        authConfig: { bcryptRounds: 12 },
+      } as unknown as ApiConfigService,
     );
   });
 

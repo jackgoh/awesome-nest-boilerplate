@@ -10,6 +10,7 @@ import { AuthorizationRevisionService } from './authorization-revision.service';
 import { IAMController } from './iam.controller';
 import { IamPolicyService } from './iam-policy.service';
 import { IAMService } from './iam.service';
+import { UserLifecycleService } from './user-lifecycle.service';
 
 @Module({
   imports: [
@@ -18,7 +19,12 @@ import { IAMService } from './iam.service';
     OutboxModule,
   ],
   controllers: [IAMController],
-  providers: [AuthorizationRevisionService, IamPolicyService, IAMService],
-  exports: [IAMService],
+  providers: [
+    AuthorizationRevisionService,
+    IamPolicyService,
+    IAMService,
+    UserLifecycleService,
+  ],
+  exports: [IAMService, UserLifecycleService],
 })
 export class IAMModule {}

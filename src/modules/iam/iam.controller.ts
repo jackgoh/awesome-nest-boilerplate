@@ -12,9 +12,12 @@ import {
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
+  ApiConflictResponse,
+  ApiForbiddenResponse,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiTags,
+  ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { ClsService } from 'nestjs-cls';
 
@@ -24,18 +27,22 @@ import { type AuthenticatedUser } from '../../types/auth-user.type';
 import { type AuditEventEntity } from '../audit/audit-event.entity';
 import { AuditEventsQueryDto } from './dto/audit-events-query.dto';
 import { CreateRoleDto } from './dto/create-role.dto';
+import { LifecycleReasonDto } from './dto/lifecycle-reason.dto';
 import { PermissionDto } from './dto/permission.dto';
 import { ReplaceUserDirectPermissionsDto } from './dto/replace-user-direct-permissions.dto';
 import { ReplaceUserRolesDto } from './dto/replace-user-roles.dto';
 import { RoleDto } from './dto/role.dto';
+import { SuspendUserDto } from './dto/suspend-user.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { IAMService } from './iam.service';
+import { UserLifecycleService } from './user-lifecycle.service';
 
 @Controller('iam')
 @ApiTags('iam')
 export class IAMController {
   constructor(
     private readonly iamService: IAMService,
+    private readonly lifecycleService: UserLifecycleService,
     private readonly cls: ClsService,
   ) {}
 
@@ -80,6 +87,8 @@ export class IAMController {
   @Auth([Permission.ROLE_MANAGE])
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: RoleDto, description: 'Updated custom role' })
+  @ApiForbiddenResponse({ description: 'System role or grant policy denied' })
+  @ApiUnprocessableEntityResponse({ description: 'Unknown or duplicate IDs' })
   async updateRole(
     @AuthUser() actor: AuthenticatedUser,
     @UUIDParam('id') id: string,
@@ -99,6 +108,8 @@ export class IAMController {
   @Auth([Permission.ROLE_MANAGE])
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse({ description: 'Deleted custom role' })
+  @ApiForbiddenResponse({ description: 'System role is protected' })
+  @ApiConflictResponse({ description: 'Role still has assigned members' })
   deleteRole(
     @AuthUser() actor: AuthenticatedUser,
     @UUIDParam('id') id: string,
@@ -110,6 +121,8 @@ export class IAMController {
   @Auth([Permission.ROLE_ASSIGN])
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse({ description: 'Replaced user roles' })
+  @ApiForbiddenResponse({ description: 'Role assignment policy denied' })
+  @ApiUnprocessableEntityResponse({ description: 'Unknown or duplicate IDs' })
   replaceUserRoles(
     @AuthUser() actor: AuthenticatedUser,
     @UUIDParam('id') userId: Uuid,
@@ -127,6 +140,8 @@ export class IAMController {
   @Auth([Permission.PERMISSION_ASSIGN])
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse({ description: 'Replaced direct permissions' })
+  @ApiForbiddenResponse({ description: 'Permission grant policy denied' })
+  @ApiUnprocessableEntityResponse({ description: 'Unknown or duplicate IDs' })
   replaceUserDirectPermissions(
     @AuthUser() actor: AuthenticatedUser,
     @UUIDParam('id') userId: Uuid,
@@ -158,6 +173,81 @@ export class IAMController {
     @Query() query: AuditEventsQueryDto,
   ): Promise<AuditEventEntity[]> {
     return this.iamService.findAuditEvents(query);
+  }
+
+  @Post('users/:id/suspend')
+  @Auth([Permission.USER_UPDATE])
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Suspended account and revoked tokens' })
+  @ApiForbiddenResponse({ description: 'Account management policy denied' })
+  @ApiConflictResponse({ description: 'Invalid lifecycle transition' })
+  suspendUser(
+    @AuthUser() actor: AuthenticatedUser,
+    @UUIDParam('id') userId: Uuid,
+    @Body() dto: SuspendUserDto,
+  ): Promise<void> {
+    return this.lifecycleService.suspend(
+      actor,
+      userId,
+      dto.reason,
+      this.correlationId(),
+    );
+  }
+
+  @Post('users/:id/activate')
+  @Auth([Permission.USER_UPDATE])
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Activated account' })
+  @ApiForbiddenResponse({ description: 'Account management policy denied' })
+  @ApiConflictResponse({ description: 'Invalid lifecycle transition' })
+  activateUser(
+    @AuthUser() actor: AuthenticatedUser,
+    @UUIDParam('id') userId: Uuid,
+    @Body() dto: LifecycleReasonDto = new LifecycleReasonDto(),
+  ): Promise<void> {
+    return this.lifecycleService.activate(
+      actor,
+      userId,
+      dto.reason,
+      this.correlationId(),
+    );
+  }
+
+  @Post('users/:id/revoke-sessions')
+  @Auth([Permission.USER_UPDATE])
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Durably revoked all user sessions' })
+  @ApiForbiddenResponse({ description: 'Account management policy denied' })
+  revokeUserSessions(
+    @AuthUser() actor: AuthenticatedUser,
+    @UUIDParam('id') userId: Uuid,
+    @Body() dto: LifecycleReasonDto = new LifecycleReasonDto(),
+  ): Promise<void> {
+    return this.lifecycleService.revokeSessions(
+      actor,
+      userId,
+      dto.reason,
+      this.correlationId(),
+    );
+  }
+
+  @Delete('users/:id')
+  @Auth([Permission.USER_DELETE])
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Soft-deleted account' })
+  @ApiForbiddenResponse({ description: 'Account management policy denied' })
+  @ApiConflictResponse({ description: 'Invalid lifecycle transition' })
+  softDeleteUser(
+    @AuthUser() actor: AuthenticatedUser,
+    @UUIDParam('id') userId: Uuid,
+    @Body() dto: LifecycleReasonDto = new LifecycleReasonDto(),
+  ): Promise<void> {
+    return this.lifecycleService.softDelete(
+      actor,
+      userId,
+      dto.reason,
+      this.correlationId(),
+    );
   }
 
   private correlationId(): Uuid {

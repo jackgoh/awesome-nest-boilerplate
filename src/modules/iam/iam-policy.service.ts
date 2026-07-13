@@ -4,6 +4,7 @@ import { Permission } from '../../constants/permissions.enum';
 import { type AuthenticatedUser } from '../../types/auth-user.type';
 import { type PermissionEntity } from './entities/permission.entity';
 import { type RoleEntity } from './entities/role.entity';
+import { type UserEntity } from '../user/user.entity';
 
 @Injectable()
 export class IamPolicyService {
@@ -18,6 +19,32 @@ export class IamPolicyService {
         message: 'System roles cannot be changed',
       });
     }
+  }
+
+  assertCanManageAccount(
+    actor: AuthenticatedUser,
+    target: UserEntity,
+  ): boolean {
+    const bypass = this.isSystemAdministrator(actor);
+    const targetPermissions = [
+      ...target.roles.flatMap((role) =>
+        role.permissions.map((permission) => permission.name),
+      ),
+      ...(target.directPermissions ?? []).map((permission) => permission.name),
+    ];
+    const targetIsSystemAdministrator = targetPermissions.includes(
+      Permission.SYSTEM_ADMIN,
+    );
+
+    if (targetIsSystemAdministrator && !bypass) {
+      throw new ForbiddenException({
+        code: 'IAM_GRANT_NOT_ALLOWED',
+        message:
+          'System administrators can only be managed by an equivalent authority',
+      });
+    }
+
+    return bypass;
   }
 
   assertCanGrantPermissions(

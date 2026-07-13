@@ -8,8 +8,14 @@ import {
   UploadedFile,
   Version,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { ClsService } from 'nestjs-cls';
 
 import { ApiFile, Auth, AuthUser, Public } from '../../decorators';
 import { type IFile } from '../../interfaces';
@@ -17,6 +23,7 @@ import { type AuthenticatedUser } from '../../types/auth-user.type';
 import { UserDto } from '../user/dtos/user.dto';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginPayloadDto } from './dto/login-payload.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { TokenPayloadDto } from './dto/token-payload.dto';
@@ -31,6 +38,7 @@ export class AuthController {
   constructor(
     private userService: UserService,
     private authService: AuthService,
+    private readonly cls: ClsService,
   ) {}
 
   @Post('login')
@@ -101,11 +109,30 @@ export class AuthController {
   async logoutAll(@AuthUser() user: AuthenticatedUser): Promise<{
     message: string;
   }> {
-    await this.authService.logoutAll(user.id);
+    await this.authService.logoutAll(user.id, this.cls.getId() as Uuid);
 
     return {
       message: 'Successfully logged out from all sessions',
     };
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Auth()
+  @ApiNoContentResponse({
+    description: 'Password changed and sessions revoked',
+  })
+  @ApiUnauthorizedResponse({ description: 'Current password is invalid' })
+  changePassword(
+    @AuthUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<void> {
+    return this.authService.changePassword(
+      user.id,
+      dto.currentPassword,
+      dto.newPassword,
+      this.cls.getId() as Uuid,
+    );
   }
 
   @Post('register')
