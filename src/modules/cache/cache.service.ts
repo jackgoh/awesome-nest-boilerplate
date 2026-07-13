@@ -32,6 +32,23 @@ redis.call('DEL', KEYS[1])
 return #tokenKeys
 `;
 
+export function getUserAuthorizationVersionKey(userId: Uuid): string {
+  return `user:{${userId}}:authz-version`;
+}
+
+export async function invalidateUserAuthorizationVersions(
+  redisClient: Pick<Redis, 'incr'>,
+  userIds: Uuid[],
+): Promise<void> {
+  const uniqueUserIds = [...new Set(userIds)];
+
+  await Promise.all(
+    uniqueUserIds.map((userId) =>
+      redisClient.incr(getUserAuthorizationVersionKey(userId)),
+    ),
+  );
+}
+
 @Injectable()
 export class CacheService {
   private readonly logger = new Logger(CacheService.name);
@@ -95,8 +112,25 @@ export class CacheService {
     return `user_permissions:${userId}`;
   }
 
-  getUserKey(userId: Uuid): string {
-    return `user:${userId}`;
+  getUserAuthorizationVersionKey(userId: Uuid): string {
+    return getUserAuthorizationVersionKey(userId);
+  }
+
+  getUserKey(userId: Uuid, version: string): string {
+    return `user:{${userId}}:authz:${version}`;
+  }
+
+  async resolveUserKey(userId: Uuid): Promise<string> {
+    const version =
+      (await this.redisClient.get(
+        this.getUserAuthorizationVersionKey(userId),
+      )) ?? '0';
+
+    return this.getUserKey(userId, version);
+  }
+
+  async invalidateUserAuthorization(userIds: Uuid[]): Promise<void> {
+    await invalidateUserAuthorizationVersions(this.redisClient, userIds);
   }
 
   getRefreshTokenKey(userId: Uuid, familyId: string, tokenId: string): string {

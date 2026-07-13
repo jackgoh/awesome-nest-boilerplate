@@ -5,6 +5,8 @@ import { type EntityManager, In } from 'typeorm';
 import { Permission } from '../../constants/permissions.enum';
 import { PermissionEntity } from '../../modules/iam/entities/permission.entity';
 import { RoleEntity } from '../../modules/iam/entities/role.entity';
+import { UserEntity } from '../../modules/user/user.entity';
+import { type Uuid } from '../../types';
 
 interface IRoleSeedData {
   name: string;
@@ -76,9 +78,18 @@ const ROLE_CONFIGS: IRoleSeedData[] = [
 ];
 
 /** Idempotently synchronize built-in roles and their permission assignments. */
-export async function seedRoles(manager: EntityManager): Promise<void> {
+export async function seedRoles(manager: EntityManager): Promise<Uuid[]> {
   const roleRepository = manager.getRepository(RoleEntity);
   const permissionRepository = manager.getRepository(PermissionEntity);
+  const affectedUsers = await manager
+    .getRepository(UserEntity)
+    .createQueryBuilder('user')
+    .select('user.id', 'id')
+    .innerJoin('user.roles', 'role')
+    .where('role.name IN (:...roleNames)', {
+      roleNames: ROLE_CONFIGS.map(({ name }) => name),
+    })
+    .getRawMany<{ id: Uuid }>();
 
   for (const roleConfig of ROLE_CONFIGS) {
     let role = await roleRepository.findOne({
@@ -121,6 +132,8 @@ export async function seedRoles(manager: EntityManager): Promise<void> {
   }
 
   logger.log('Roles seeding completed successfully');
+
+  return affectedUsers.map(({ id }) => id);
 }
 
 export default seedRoles;

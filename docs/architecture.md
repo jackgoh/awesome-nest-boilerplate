@@ -61,6 +61,8 @@ Methods that define a unit of work use the `@Transactional()` decorator.
 
 Seed functions live in `src/database/seeds`; `pnpm seed:run` initializes one
 data source and executes all seeds as one transaction.
+Role synchronization returns affected user IDs and advances their authorization
+cache generations only after the seed transaction commits.
 
 ## Project layout
 

@@ -22,7 +22,7 @@ describe('JwtStrategy', () => {
   };
 
   let cacheService: {
-    getUserKey: jest.Mock;
+    resolveUserKey: jest.Mock;
     get: jest.Mock;
     insert: jest.Mock;
   };
@@ -31,7 +31,7 @@ describe('JwtStrategy', () => {
 
   beforeEach(() => {
     cacheService = {
-      getUserKey: jest.fn().mockReturnValue(`user:${userId}`),
+      resolveUserKey: jest.fn().mockResolvedValue(`user:${userId}`),
       get: jest.fn().mockResolvedValue(null),
       insert: jest.fn().mockResolvedValue(undefined),
     };
@@ -50,6 +50,7 @@ describe('JwtStrategy', () => {
         issuer: claims.iss,
         audience: claims.aud,
       },
+      cacheConfig: { userPermissionsTtl: 120 },
     } as ApiConfigService;
 
     strategy = new JwtStrategy(
@@ -69,6 +70,11 @@ describe('JwtStrategy', () => {
     const cachedUser = JSON.parse(cacheService.insert.mock.calls[0][1]);
 
     expect(cachedUser).not.toHaveProperty('authentication');
+    expect(cacheService.insert).toHaveBeenCalledWith(
+      `user:${userId}`,
+      expect.any(String),
+      120,
+    );
   });
 
   it('overwrites stale session metadata on a cache hit', async () => {
@@ -89,6 +95,16 @@ describe('JwtStrategy', () => {
       sessionId: claims.sid,
     });
     expect(userService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the database when the cache generation is unavailable', async () => {
+    cacheService.resolveUserKey.mockRejectedValue(new Error('Redis offline'));
+
+    const principal = await strategy.validate(claims);
+
+    expect(principal.id).toBe(userId);
+    expect(userService.findOne).toHaveBeenCalled();
+    expect(cacheService.insert).not.toHaveBeenCalled();
   });
 
   it('rejects access claims without a session identifier', async () => {

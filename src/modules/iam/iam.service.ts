@@ -7,6 +7,7 @@ import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { type TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { In, type Repository } from 'typeorm';
 
+import { CacheService } from '../cache/cache.service';
 import { UserEntity } from '../user/user.entity';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -14,10 +15,16 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { PermissionEntity } from './entities/permission.entity';
 import { RoleEntity } from './entities/role.entity';
 
+interface IRoleMutationResult {
+  affectedUserIds: Uuid[];
+  role: RoleEntity;
+}
+
 @Injectable()
 export class IAMService {
   constructor(
     private readonly txHost: TransactionHost<TransactionalAdapterTypeOrm>,
+    private readonly cacheService: CacheService,
   ) {}
 
   private get roleRepository(): Repository<RoleEntity> {
@@ -26,6 +33,10 @@ export class IAMService {
 
   private get permissionRepository(): Repository<PermissionEntity> {
     return this.txHost.tx.getRepository(PermissionEntity);
+  }
+
+  private get userRepository(): Repository<UserEntity> {
+    return this.txHost.tx.getRepository(UserEntity);
   }
 
   @Transactional()
@@ -66,12 +77,25 @@ export class IAMService {
     });
   }
 
-  @Transactional()
   async updateRole(
     id: string,
     updateRoleDto: UpdateRoleDto,
   ): Promise<RoleEntity> {
+    const result = await this.txHost.withTransaction(() =>
+      this.updateRoleTransaction(id, updateRoleDto),
+    );
+
+    await this.cacheService.invalidateUserAuthorization(result.affectedUserIds);
+
+    return result.role;
+  }
+
+  private async updateRoleTransaction(
+    id: string,
+    updateRoleDto: UpdateRoleDto,
+  ): Promise<IRoleMutationResult> {
     const role = await this.findRoleById(id);
+    const affectedUserIds = await this.findUserIdsByRole(role.id);
     const { name, description, permissionIds } = updateRoleDto;
 
     if (permissionIds !== undefined) {
@@ -86,15 +110,28 @@ export class IAMService {
     role.description =
       description === undefined ? role.description : description;
 
-    return this.roleRepository.save(role);
+    const savedRole = await this.roleRepository.save(role);
+
+    return { affectedUserIds, role: savedRole };
   }
 
   async deleteRole(id: string): Promise<void> {
+    const affectedUserIds = await this.txHost.withTransaction(() =>
+      this.deleteRoleTransaction(id),
+    );
+
+    await this.cacheService.invalidateUserAuthorization(affectedUserIds);
+  }
+
+  private async deleteRoleTransaction(id: string): Promise<Uuid[]> {
+    const affectedUserIds = await this.findUserIdsByRole(id as Uuid);
     const result = await this.roleRepository.delete(id);
 
     if (result.affected === 0) {
       throw new NotFoundException(`Role with ID ${id} not found`);
     }
+
+    return affectedUserIds;
   }
 
   async createPermission(
@@ -137,6 +174,16 @@ export class IAMService {
     }
 
     return this.permissionRepository.findBy({ id: In(ids) });
+  }
+
+  private async findUserIdsByRole(roleId: Uuid): Promise<Uuid[]> {
+    const rows = await this.userRepository
+      .createQueryBuilder('user')
+      .select('user.id', 'id')
+      .innerJoin('user.roles', 'role', 'role.id = :roleId', { roleId })
+      .getRawMany<{ id: Uuid }>();
+
+    return rows.map(({ id }) => id);
   }
 
   // --- Utility ---

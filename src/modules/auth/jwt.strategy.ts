@@ -15,7 +15,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly logger = new Logger(JwtStrategy.name);
 
   constructor(
-    configService: ApiConfigService,
+    private readonly configService: ApiConfigService,
     private userService: UserService,
     private cacheService: CacheService,
   ) {
@@ -36,10 +36,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     const claims = claimsResult.data;
-
-    const userCacheKey = this.cacheService.getUserKey(claims.sub);
+    let userCacheKey: string | undefined;
 
     try {
+      userCacheKey = await this.cacheService.resolveUserKey(claims.sub);
       const cachedJsonUser = await this.cacheService.get(userCacheKey);
 
       if (cachedJsonUser) {
@@ -92,10 +92,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found');
     }
 
-    try {
-      await this.cacheService.insert(userCacheKey, JSON.stringify(user), 300);
-    } catch (cacheError) {
-      this.logger.error(`Failed to cache user ${claims.sub}: ${cacheError}`);
+    if (userCacheKey) {
+      try {
+        await this.cacheService.insert(
+          userCacheKey,
+          JSON.stringify(user),
+          this.configService.cacheConfig.userPermissionsTtl,
+        );
+      } catch (cacheError) {
+        this.logger.error(`Failed to cache user ${claims.sub}: ${cacheError}`);
+      }
     }
 
     return this.createPrincipal(user, claims);
