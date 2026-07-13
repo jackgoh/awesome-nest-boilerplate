@@ -33,6 +33,7 @@ import { SharedModule } from './shared/shared.module';
       global: true,
       middleware: {
         mount: true,
+        generateId: true,
       },
       plugins: [
         new ClsPluginTransactional({

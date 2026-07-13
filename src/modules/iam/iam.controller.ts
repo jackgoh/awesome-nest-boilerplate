@@ -7,6 +7,8 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Put,
+  Query,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -14,12 +16,17 @@ import {
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ClsService } from 'nestjs-cls';
 
 import { Permission } from '../../constants/permissions.enum';
-import { Auth, UUIDParam } from '../../decorators';
-import { CreatePermissionDto } from './dto/create-permission.dto';
+import { Auth, AuthUser, UUIDParam } from '../../decorators';
+import { type AuthenticatedUser } from '../../types/auth-user.type';
+import { type AuditEventEntity } from '../audit/audit-event.entity';
+import { AuditEventsQueryDto } from './dto/audit-events-query.dto';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { PermissionDto } from './dto/permission.dto';
+import { ReplaceUserDirectPermissionsDto } from './dto/replace-user-direct-permissions.dto';
+import { ReplaceUserRolesDto } from './dto/replace-user-roles.dto';
 import { RoleDto } from './dto/role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { IAMService } from './iam.service';
@@ -27,17 +34,24 @@ import { IAMService } from './iam.service';
 @Controller('iam')
 @ApiTags('iam')
 export class IAMController {
-  constructor(private readonly iamService: IAMService) {}
+  constructor(
+    private readonly iamService: IAMService,
+    private readonly cls: ClsService,
+  ) {}
 
   @Post('roles')
   @Auth([Permission.ROLE_MANAGE])
   @HttpCode(HttpStatus.CREATED)
-  @ApiCreatedResponse({
-    type: RoleDto,
-    description: 'Successfully created role',
-  })
-  async createRole(@Body() createRoleDto: CreateRoleDto): Promise<RoleDto> {
-    const role = await this.iamService.createRole(createRoleDto);
+  @ApiCreatedResponse({ type: RoleDto, description: 'Created custom role' })
+  async createRole(
+    @AuthUser() actor: AuthenticatedUser,
+    @Body() dto: CreateRoleDto,
+  ): Promise<RoleDto> {
+    const role = await this.iamService.createRole(
+      actor,
+      dto,
+      this.correlationId(),
+    );
 
     return role.toDto();
   }
@@ -65,12 +79,18 @@ export class IAMController {
   @Patch('roles/:id')
   @Auth([Permission.ROLE_MANAGE])
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ type: RoleDto, description: 'Successfully updated role' })
+  @ApiOkResponse({ type: RoleDto, description: 'Updated custom role' })
   async updateRole(
+    @AuthUser() actor: AuthenticatedUser,
     @UUIDParam('id') id: string,
-    @Body() updateRoleDto: UpdateRoleDto,
+    @Body() dto: UpdateRoleDto,
   ): Promise<RoleDto> {
-    const role = await this.iamService.updateRole(id, updateRoleDto);
+    const role = await this.iamService.updateRole(
+      actor,
+      id,
+      dto,
+      this.correlationId(),
+    );
 
     return role.toDto();
   }
@@ -78,34 +98,69 @@ export class IAMController {
   @Delete('roles/:id')
   @Auth([Permission.ROLE_MANAGE])
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiNoContentResponse({ description: 'Successfully deleted role' })
-  async deleteRole(@UUIDParam('id') id: string): Promise<void> {
-    await this.iamService.deleteRole(id);
+  @ApiNoContentResponse({ description: 'Deleted custom role' })
+  deleteRole(
+    @AuthUser() actor: AuthenticatedUser,
+    @UUIDParam('id') id: string,
+  ): Promise<void> {
+    return this.iamService.deleteRole(actor, id, this.correlationId());
   }
 
-  @Post('permissions')
-  @Auth([Permission.PERMISSION_MANAGE])
-  @HttpCode(HttpStatus.CREATED)
-  @ApiCreatedResponse({
-    type: PermissionDto,
-    description: 'Successfully created permission',
-  })
-  async createPermission(
-    @Body() createPermissionDto: CreatePermissionDto,
-  ): Promise<PermissionDto> {
-    const permission =
-      await this.iamService.createPermission(createPermissionDto);
+  @Put('users/:id/roles')
+  @Auth([Permission.ROLE_ASSIGN])
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Replaced user roles' })
+  replaceUserRoles(
+    @AuthUser() actor: AuthenticatedUser,
+    @UUIDParam('id') userId: Uuid,
+    @Body() dto: ReplaceUserRolesDto,
+  ): Promise<void> {
+    return this.iamService.replaceUserRoles(
+      actor,
+      userId,
+      dto,
+      this.correlationId(),
+    );
+  }
 
-    return permission.toDto();
+  @Put('users/:id/direct-permissions')
+  @Auth([Permission.PERMISSION_ASSIGN])
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Replaced direct permissions' })
+  replaceUserDirectPermissions(
+    @AuthUser() actor: AuthenticatedUser,
+    @UUIDParam('id') userId: Uuid,
+    @Body() dto: ReplaceUserDirectPermissionsDto,
+  ): Promise<void> {
+    return this.iamService.replaceUserDirectPermissions(
+      actor,
+      userId,
+      dto,
+      this.correlationId(),
+    );
   }
 
   @Get('permissions')
   @Auth([Permission.PERMISSION_LIST])
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ type: [PermissionDto], description: 'List of permissions' })
+  @ApiOkResponse({ type: [PermissionDto], description: 'Static permissions' })
   async findAllPermissions(): Promise<PermissionDto[]> {
     const permissions = await this.iamService.findAllPermissions();
 
-    return permissions.map((p) => p.toDto());
+    return permissions.map((permission) => permission.toDto());
+  }
+
+  @Get('audit-events')
+  @Auth([Permission.AUDIT_READ])
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'Filtered IAM audit events' })
+  findAuditEvents(
+    @Query() query: AuditEventsQueryDto,
+  ): Promise<AuditEventEntity[]> {
+    return this.iamService.findAuditEvents(query);
+  }
+
+  private correlationId(): Uuid {
+    return this.cls.getId() as Uuid;
   }
 }

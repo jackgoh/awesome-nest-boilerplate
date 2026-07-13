@@ -6,7 +6,9 @@ import { OutboxModule } from '../outbox/outbox.module';
 import { UserEntity } from '../user/user.entity';
 import { PermissionEntity } from './entities/permission.entity';
 import { RoleEntity } from './entities/role.entity';
+import { AuthorizationRevisionService } from './authorization-revision.service';
 import { IAMController } from './iam.controller';
+import { IamPolicyService } from './iam-policy.service';
 import { IAMService } from './iam.service';
 
 @Module({
@@ -16,7 +18,7 @@ import { IAMService } from './iam.service';
     OutboxModule,
   ],
   controllers: [IAMController],
-  providers: [IAMService],
+  providers: [AuthorizationRevisionService, IamPolicyService, IAMService],
   exports: [IAMService],
 })
 export class IAMModule {}

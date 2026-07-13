@@ -143,6 +143,7 @@ describe('AuthController', () => {
       expect(authService.createTokens).toHaveBeenCalledWith({
         userId: mockUser.id,
         roles: mockUser.roles,
+        sessionVersion: mockUser.sessionVersion,
       });
       expect(result).toBeInstanceOf(LoginPayloadDto);
       expect(result.user).toBeDefined();

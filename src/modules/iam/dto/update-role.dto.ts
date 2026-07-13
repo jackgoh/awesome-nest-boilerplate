@@ -1,5 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  ArrayUnique,
+  IsArray,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
 import { ACCEPTED_UUID_VERSIONS } from '../../../common/uuid';
 
@@ -31,7 +38,17 @@ export class UpdateRoleDto {
     ],
   })
   @IsArray()
+  @ArrayUnique()
   @IsUUID([...ACCEPTED_UUID_VERSIONS], { each: true })
   @IsOptional()
   permissionIds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Administrative reason recorded in the audit event',
+    maxLength: 500,
+  })
+  @IsString()
+  @MaxLength(500)
+  @IsOptional()
+  reason?: string;
 }

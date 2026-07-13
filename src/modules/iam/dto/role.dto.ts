@@ -2,7 +2,11 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 import { AbstractDto } from '../../../common/dto/abstract.dto';
-import { StringField, StringFieldOptional } from '../../../decorators';
+import {
+  BooleanField,
+  StringField,
+  StringFieldOptional,
+} from '../../../decorators';
 import { type RoleEntity } from '../entities/role.entity';
 import { PermissionDto } from './permission.dto';
 
@@ -12,6 +16,9 @@ export class RoleDto extends AbstractDto {
 
   @StringFieldOptional()
   description?: string;
+
+  @BooleanField()
+  isSystem: boolean;
 
   @ApiPropertyOptional({
     type: () => PermissionDto,
@@ -26,6 +33,7 @@ export class RoleDto extends AbstractDto {
     this.id = role.id;
     this.name = role.name;
     this.description = role.description;
+    this.isSystem = role.isSystem;
     this.permissions = role.permissions.map((permission) => permission.toDto());
   }
 }
