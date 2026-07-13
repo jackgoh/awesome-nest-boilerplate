@@ -1,8 +1,9 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
+import { generateUuid } from '../../common/uuid';
 import { validateHash } from '../../common/utils';
 import { TokenType } from '../../constants';
 import { ApiConfigService } from '../../shared/services/api-config.service';
@@ -38,7 +39,7 @@ export class AuthService {
   ) {}
 
   async createTokens(data: ITokenSubject): Promise<TokenPayloadDto> {
-    const familyId = randomUUID();
+    const familyId = generateUuid();
     const signedTokens = await this.signTokens(data, familyId);
     const refreshTokenHash = hashRefreshToken(signedTokens.tokens.refreshToken);
 
@@ -56,8 +57,8 @@ export class AuthService {
     data: ITokenSubject,
     familyId: string,
   ): Promise<ISignedTokens> {
-    const tokenId = randomUUID();
-    const accessTokenId = randomUUID();
+    const tokenId = generateUuid();
+    const accessTokenId = generateUuid();
     const roleNames = data.roles.map((role) => role.name);
 
     const [accessToken, refreshToken] = await Promise.all([

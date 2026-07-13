@@ -1,4 +1,4 @@
-FROM node:24.11.0-bookworm-slim AS base
+FROM node:24.16.0-bookworm-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -25,7 +25,7 @@ RUN pnpm fetch --prod --frozen-lockfile
 RUN pnpm install --prod --offline --frozen-lockfile --ignore-scripts
 RUN pnpm rebuild bcrypt
 
-FROM node:24.11.0-bookworm-slim AS runtime
+FROM node:24.16.0-bookworm-slim AS runtime
 
 ENV NODE_ENV="production"
 ENV PORT="3000"

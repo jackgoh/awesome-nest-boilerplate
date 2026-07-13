@@ -7,6 +7,8 @@ import {
   IsUUID,
 } from 'class-validator';
 
+import { ACCEPTED_UUID_VERSIONS } from '../../../common/uuid';
+
 export class CreateRoleDto {
   @ApiProperty({
     description: 'The name of the role',
@@ -28,10 +30,10 @@ export class CreateRoleDto {
     description: 'List of permission IDs associated with this role',
     type: [String],
     format: 'uuid',
-    example: ['b3d7e1d8-8f15-4a8f-8b4e-3e1f4a1b2c3d'],
+    example: ['019f5ce3-ccca-7790-9b07-346175d5a0c0'],
   })
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID([...ACCEPTED_UUID_VERSIONS], { each: true })
   @IsOptional()
   permissionIds?: string[];
 }

@@ -18,7 +18,7 @@ Special thanks to Narek for creating such a comprehensive and well-structured Ne
 
 ## 📋 Prerequisite
 
-- 🟢 [Node.js 24.11+](https://github.com/nvm-sh/nvm)
+- 🟢 [Node.js 24.16+](https://github.com/nvm-sh/nvm)
 - 🐳 [Docker + Docker Compose](https://github.com/docker/docker-install)
 - 📦 [pnpm 11.12+](https://pnpm.io/installation) - `corepack enable`
 
@@ -127,6 +127,7 @@ pnpm start:prod
 - ✅ **Role-based Access Control** - User permissions and roles
 - ✅ **API Documentation** - Auto-generated Swagger docs
 - ✅ **Database Migrations** - TypeORM migration system
+- ✅ **Sortable IDs** - RFC 9562 UUIDv7 generation with UUIDv4 compatibility
 - ✅ **Environment Configuration** - Validated development, test, and production configs
 - ✅ **Input Validation** - Request validation with class-validator
 - ✅ **Error Handling** - Comprehensive error handling

@@ -21,6 +21,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+import { ACCEPTED_UUID_VERSIONS } from '../common/uuid';
 import { type Constructor } from '../types';
 import { ApiEnumProperty, ApiUUIDProperty } from './property.decorators';
 import {
@@ -414,7 +415,10 @@ export function UUIDField(
   > &
     IFieldOptions = {},
 ): PropertyDecorator {
-  const decorators = [Type(() => String), IsUUID('4', { each: options.each })];
+  const decorators = [
+    Type(() => String),
+    IsUUID([...ACCEPTED_UUID_VERSIONS], { each: options.each }),
+  ];
 
   if (options.nullable) {
     decorators.push(IsNullable());

@@ -1,11 +1,11 @@
-import { randomUUID } from 'node:crypto';
-
 import { Injectable } from '@nestjs/common';
+
+import { generateUuid } from '../../common/uuid';
 
 @Injectable()
 export class GeneratorService {
   public uuid(): string {
-    return randomUUID();
+    return generateUuid();
   }
 
   public fileName(ext: string): string {

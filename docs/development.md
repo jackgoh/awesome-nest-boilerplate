@@ -13,7 +13,7 @@
 
 Install the following tools:
 
-- [Node.js](https://nodejs.org/) 24.11 or newer
+- [Node.js](https://nodejs.org/) 24.16 or newer
 - [pnpm](https://pnpm.io/installation) 11.12 or newer
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose, if you
   want to run the backing services in containers
@@ -180,7 +180,7 @@ Build the production image from the repository root:
 docker build --tag awesome-nest-boilerplate .
 ```
 
-The image uses Node.js 24.11, installs frozen pnpm dependencies in separate
+The image uses Node.js 24.16, installs frozen pnpm dependencies in separate
 build stages, contains only the compiled application and production
 dependencies, and runs as the unprivileged `node` user.
 

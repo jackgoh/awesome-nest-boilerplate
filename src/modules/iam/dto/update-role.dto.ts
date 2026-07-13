@@ -1,6 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsArray, IsOptional, IsString, IsUUID } from 'class-validator';
 
+import { ACCEPTED_UUID_VERSIONS } from '../../../common/uuid';
+
 export class UpdateRoleDto {
   @ApiPropertyOptional({
     description: 'The updated name of the role',
@@ -24,12 +26,12 @@ export class UpdateRoleDto {
     type: [String],
     format: 'uuid',
     example: [
-      'c4e8f2a9-9e1d-4b7f-9c6a-4d0e2b1a3c5e',
-      'd5f9a3b0-0f2e-5c8a-ad7b-5e1f5b2c4d6f',
+      '019f5ce3-cccb-7631-a9a1-cbacc12fb192',
+      '019f5ce3-cccb-7386-8125-0ee358ec6417',
     ],
   })
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID([...ACCEPTED_UUID_VERSIONS], { each: true })
   @IsOptional()
   permissionIds?: string[];
 }

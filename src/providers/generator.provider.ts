@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { generateUuid } from '../common/uuid';
 
 interface IS3PublicUrlConfiguration {
   bucketRegion: string;
@@ -13,7 +13,7 @@ export class GeneratorProvider {
   }
 
   static uuid(): string {
-    return randomUUID();
+    return generateUuid();
   }
 
   static fileName(ext: string): string {
