@@ -31,7 +31,7 @@ Special thanks to Narek for creating such a comprehensive and well-structured Ne
 | 🗄️ **TypeORM**    | v1.0.0   | Database ORM                  |
 | 🐘 **PostgreSQL** | v16      | Primary database              |
 | 🔴 **Redis**      | v7       | Cache and shared state        |
-| 🔍 **ESLint**     | v10.7.0  | Code linting with flat config |
+| 🔍 **Oxlint**     | v1.73.0  | Type-aware backend linting    |
 | 🎨 **Prettier**   | v3.9.5   | Code formatting               |
 | 🐺 **Husky**      | v9.1.7   | Git hooks for code quality    |
 | 🧪 **Jest**       | v30.4.2  | Testing framework             |
@@ -135,7 +135,7 @@ pnpm start:prod
 - ✅ **Rate Limiting** - Globally enforced limits with stricter authentication policies
 - ✅ **CORS Support** - Validated origin allowlist
 - ✅ **Security Headers** - Helmet.js security headers
-- ✅ **Code Quality** - ESLint, Prettier, Husky pre-commit hooks
+- ✅ **Code Quality** - Oxlint, Prettier, Husky pre-commit hooks
 - ✅ **Testing Setup** - Unit and E2E testing with Jest
 
 ## 🔐 Authentication model
@@ -155,14 +155,14 @@ access- and refresh-claim contracts built around `sub`, `jti`, and `sid`.
 
 This project uses modern tooling for maintaining code quality:
 
-- 🔍 **ESLint v10** with flat config format (`eslint.config.mjs`)
+- 🔍 **Oxlint** with TypeScript-aware correctness and safety rules
 - 🐺 **Husky v9** for Git hooks
 - 📝 **lint-staged** for pre-commit linting
 - 💬 **commitlint** for conventional commit messages
 
 Git hooks are automatically set up when you run `pnpm install`. The hooks will:
 
-- 🔍 Run ESLint and Prettier on staged files before commit
+- 🔍 Run Oxlint and Prettier on staged files before commit
 - ✅ Validate commit messages follow conventional commit format
 
 ## 📚 Documentation

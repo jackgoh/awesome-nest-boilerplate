@@ -26,8 +26,6 @@ export class RoleDto extends AbstractDto {
     this.id = role.id;
     this.name = role.name;
     this.description = role.description;
-    this.permissions =
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      role.permissions?.map((permission) => permission.toDto()) || [];
+    this.permissions = role.permissions.map((permission) => permission.toDto());
   }
 }

@@ -8,8 +8,49 @@ on:
     branches: [main, develop]
 
 jobs:
-  verify:
-    name: Format, lint, type-check, build, and test
+  static-analysis:
+    name: Format, lint, type-check, and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.11.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Run Oxlint
+        run: pnpm lint
+
+      - name: Run TypeScript 7 type check
+        run: pnpm type-check
+
+      - name: Run TypeScript 6 compatibility check
+        run: pnpm type-check:compat
+
+      - name: Run TypeScript 7 test type check
+        run: pnpm type-check:test
+
+      - name: Run TypeScript 6 test compatibility check
+        run: pnpm type-check:test:compat
+
+      - name: Build
+        run: pnpm build:prod
+
+  integration:
+    name: Unit, migration, seed, and end-to-end tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -81,27 +122,6 @@ jobs:
             cat /tmp/jwt-public.pem
             echo 'JWT_PUBLIC_KEY_EOF'
           } >> "$GITHUB_ENV"
-
-      - name: Check formatting
-        run: pnpm format:check
-
-      - name: Run ESLint
-        run: pnpm lint
-
-      - name: Run TypeScript 7 type check
-        run: pnpm type-check
-
-      - name: Run TypeScript 6 compatibility check
-        run: pnpm type-check:compat
-
-      - name: Run TypeScript 7 test type check
-        run: pnpm type-check:test
-
-      - name: Run TypeScript 6 test compatibility check
-        run: pnpm type-check:test:compat
-
-      - name: Build
-        run: pnpm build:prod
 
       - name: Run unit tests
         run: pnpm test

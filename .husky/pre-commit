@@ -1,4 +1,4 @@
-# Run lint-staged (ESLint auto-fix, Prettier auto-format, TypeScript check on staged files)
-pnpm exec lint-staged
+# Husky adds node_modules/.bin to PATH.
+lint-staged
 
 echo "✅ Pre-commit checks passed!"

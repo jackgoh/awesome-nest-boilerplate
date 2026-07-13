@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import {
   type EntitySubscriberInterface,
   EventSubscriber,
@@ -32,9 +31,9 @@ export class UserSubscriber implements EntitySubscriberInterface<UserEntity> {
     }
 
     const entity = event.entity as UserEntity;
-    const databaseEntity: UserEntity | undefined = event.databaseEntity;
+    const databaseEntity = event.databaseEntity;
 
-    if (entity.password && databaseEntity?.password) {
+    if (entity.password && databaseEntity.password) {
       if (entity.password !== databaseEntity.password) {
         entity.password = generateHash(entity.password);
       }
@@ -44,10 +43,9 @@ export class UserSubscriber implements EntitySubscriberInterface<UserEntity> {
   }
 
   afterLoad(entity: UserEntity): void {
-    const rolePermissions =
-      entity.roles?.flatMap(
-        (role) => role.permissions?.map((p) => p.name) ?? [],
-      ) ?? [];
+    const rolePermissions = entity.roles.flatMap((role) =>
+      role.permissions.map((permission) => permission.name),
+    );
 
     const directPermissions =
       entity.directPermissions?.map((p) => p.name) ?? [];

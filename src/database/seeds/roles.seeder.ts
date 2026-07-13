@@ -1,4 +1,3 @@
-/* eslint-disable no-await-in-loop */
 import { Logger } from '@nestjs/common';
 import { type EntityManager, In } from 'typeorm';
 

@@ -17,8 +17,8 @@
     "typeAware": true,
     "typeCheck": false,
     "denyWarnings": true,
-    "reportUnusedDisableDirectives": "off",
-    "respectEslintDisableDirectives": true,
+    "reportUnusedDisableDirectives": "error",
+    "respectEslintDisableDirectives": false,
   },
   "ignorePatterns": [
     "node_modules/**",

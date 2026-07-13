@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -51,11 +50,10 @@ export class UserDto extends AbstractDto {
     super(user);
     this.firstName = user.firstName;
     this.lastName = user.lastName;
-    this.roles = user.roles?.map((role) => role.toDto()) ?? [];
+    this.roles = user.roles.map((role) => role.toDto());
     this.email = user.email;
     this.avatar = user.avatar;
     this.isActive = options?.isActive;
-    this.computedPermissions =
-      (user as AuthenticatedUser).computedPermissions ?? [];
+    this.computedPermissions = user.computedPermissions ?? [];
   }
 }
