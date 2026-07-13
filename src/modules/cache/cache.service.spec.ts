@@ -10,6 +10,7 @@ describe('CacheService', () => {
   let redis: {
     set: jest.Mock;
     get: jest.Mock;
+    exists: jest.Mock;
     incr: jest.Mock;
     eval: jest.Mock;
     multi: jest.Mock;
@@ -18,29 +19,40 @@ describe('CacheService', () => {
     set: jest.Mock;
     sadd: jest.Mock;
     expire: jest.Mock;
+    zadd: jest.Mock;
+    zremrangebyscore: jest.Mock;
     exec: jest.Mock;
   };
   let service: CacheService;
 
   beforeEach(() => {
+    jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
     transaction = {
       set: jest.fn(),
       sadd: jest.fn(),
       expire: jest.fn(),
+      zadd: jest.fn(),
+      zremrangebyscore: jest.fn(),
       exec: jest.fn().mockResolvedValue([]),
     };
     transaction.set.mockReturnValue(transaction);
     transaction.sadd.mockReturnValue(transaction);
     transaction.expire.mockReturnValue(transaction);
+    transaction.zadd.mockReturnValue(transaction);
+    transaction.zremrangebyscore.mockReturnValue(transaction);
     redis = {
       set: jest.fn().mockResolvedValue('OK'),
       get: jest.fn().mockResolvedValue(null),
+      exists: jest.fn().mockResolvedValue(0),
       incr: jest.fn().mockResolvedValue(1),
       eval: jest.fn().mockResolvedValue(1),
       multi: jest.fn().mockReturnValue(transaction),
     };
     const configService = {
-      authConfig: { jwtRefreshExpirationTime: 604_800 },
+      authConfig: {
+        jwtExpirationTime: 900,
+        jwtRefreshExpirationTime: 604_800,
+      },
     } as ApiConfigService;
 
     service = new CacheService(redis as unknown as Redis, configService);
@@ -107,14 +119,24 @@ describe('CacheService', () => {
     );
 
     expect(transaction.set).toHaveBeenCalledWith(
-      `r_token:{${userId}:family-id}:token-id`,
+      `r_token:{${userId}}:session:family-id:token:token-id`,
       'token-hash',
       'EX',
       604_800,
     );
     expect(transaction.sadd).toHaveBeenCalledWith(
-      `r_family:{${userId}:family-id}`,
-      `r_token:{${userId}:family-id}:token-id`,
+      `r_family:{${userId}}:session:family-id`,
+      `r_token:{${userId}}:session:family-id:token:token-id`,
+    );
+    expect(transaction.zremrangebyscore).toHaveBeenCalledWith(
+      `r_sessions:{${userId}}`,
+      '-inf',
+      1_700_000_000,
+    );
+    expect(transaction.zadd).toHaveBeenCalledWith(
+      `r_sessions:{${userId}}`,
+      1_700_604_800,
+      'family-id',
     );
     expect(transaction.exec).toHaveBeenCalledTimes(1);
   });
@@ -133,23 +155,55 @@ describe('CacheService', () => {
 
     expect(redis.eval).toHaveBeenCalledWith(
       expect.stringContaining("redis.call('GET', KEYS[1])"),
-      3,
-      `r_token:{${userId}:family-id}:current-id`,
-      `r_token:{${userId}:family-id}:replacement-id`,
-      `r_family:{${userId}:family-id}`,
+      4,
+      `r_token:{${userId}}:session:family-id:token:current-id`,
+      `r_token:{${userId}}:session:family-id:token:replacement-id`,
+      `r_family:{${userId}}:session:family-id`,
+      `r_sessions:{${userId}}`,
       'current-hash',
       'replacement-hash',
       '604800',
+      'family-id',
+      '1700604800',
+      '1700000000',
     );
   });
 
-  it('atomically deletes every active token in a refresh family', async () => {
-    await service.revokeRefreshTokenFamily(userId, 'family-id');
+  it('atomically revokes a session and blacklists its access tokens', async () => {
+    await service.revokeSession(userId, 'family-id');
 
     expect(redis.eval).toHaveBeenCalledWith(
       expect.stringContaining("redis.call('SMEMBERS', KEYS[1])"),
+      3,
+      `r_family:{${userId}}:session:family-id`,
+      `r_sessions:{${userId}}`,
+      `a_blacklist:{${userId}}:session:family-id`,
+      'family-id',
+      '604800',
+      '1700000000',
+    );
+  });
+
+  it('atomically revokes and blacklists every active user session', async () => {
+    await service.revokeUserSessions(userId);
+
+    expect(redis.eval).toHaveBeenCalledWith(
+      expect.stringContaining("'WITHSCORES'"),
       1,
-      `r_family:{${userId}:family-id}`,
+      `r_sessions:{${userId}}`,
+      userId,
+      '1700000000',
+    );
+  });
+
+  it('checks the session blacklist without reading token contents', async () => {
+    redis.exists.mockResolvedValue(1);
+
+    await expect(
+      service.isSessionBlacklisted(userId, 'family-id'),
+    ).resolves.toBe(true);
+    expect(redis.exists).toHaveBeenCalledWith(
+      `a_blacklist:{${userId}}:session:family-id`,
     );
   });
 });

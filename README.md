@@ -151,6 +151,10 @@ Authentication is global and default-deny. Only endpoints marked with the
 Redis, and replaying a consumed token revokes the active token family. JWTs use
 RS256, validate an environment-specific issuer and audience, and enforce strict
 access- and refresh-claim contracts built around `sub`, `jti`, and `sid`.
+Session logout blacklists its `sid` until all access tokens from that session
+expire. `POST /auth/logout-all` atomically revokes and blacklists every active
+session owned by the authenticated user; a later login creates an unaffected
+session.
 
 ## 🔧 Code Quality & Git Hooks
 

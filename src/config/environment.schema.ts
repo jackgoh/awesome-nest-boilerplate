@@ -157,7 +157,18 @@ export const environmentSchema = z
     THROTTLER_TTL: durationInMillisecondsFromEnvironment.default(60_000),
     THROTTLER_LIMIT: positiveIntegerFromEnvironment.default(10),
   })
-  .loose();
+  .loose()
+  .superRefine((environment, context) => {
+    if (
+      environment.JWT_REFRESH_EXPIRATION_TIME < environment.JWT_EXPIRATION_TIME
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['JWT_REFRESH_EXPIRATION_TIME'],
+        message: 'must be greater than or equal to JWT_EXPIRATION_TIME',
+      });
+    }
+  });
 
 export type Environment = z.infer<typeof environmentSchema>;
 

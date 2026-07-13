@@ -19,7 +19,8 @@ interface IJwtServiceMock {
 interface ICacheServiceMock {
   storeRefreshToken: jest.Mock;
   rotateRefreshToken: jest.Mock;
-  revokeRefreshTokenFamily: jest.Mock;
+  revokeSession: jest.Mock;
+  revokeUserSessions: jest.Mock;
 }
 
 describe('AuthService', () => {
@@ -57,7 +58,8 @@ describe('AuthService', () => {
     cacheService = {
       storeRefreshToken: jest.fn().mockResolvedValue(undefined),
       rotateRefreshToken: jest.fn().mockResolvedValue(true),
-      revokeRefreshTokenFamily: jest.fn().mockResolvedValue(undefined),
+      revokeSession: jest.fn().mockResolvedValue(undefined),
+      revokeUserSessions: jest.fn().mockResolvedValue(undefined),
     };
     userService = {
       findOne: jest.fn().mockResolvedValue({ id: userId, roles: [role] }),
@@ -140,7 +142,7 @@ describe('AuthService', () => {
     await expect(
       service.refreshAccessToken('replayed-refresh-token'),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(cacheService.revokeRefreshTokenFamily).toHaveBeenCalledWith(
+    expect(cacheService.revokeSession).toHaveBeenCalledWith(
       userId,
       currentClaims.sid,
     );
@@ -152,7 +154,7 @@ describe('AuthService', () => {
     await expect(
       service.logout(authenticatedUserId, currentClaims.sid, 'refresh-token'),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(cacheService.revokeRefreshTokenFamily).not.toHaveBeenCalled();
+    expect(cacheService.revokeSession).not.toHaveBeenCalled();
   });
 
   it('rejects logout when the refresh token belongs to another session', async () => {
@@ -163,16 +165,22 @@ describe('AuthService', () => {
         'refresh-token',
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(cacheService.revokeRefreshTokenFamily).not.toHaveBeenCalled();
+    expect(cacheService.revokeSession).not.toHaveBeenCalled();
   });
 
   it('revokes the complete refresh-token family on logout', async () => {
     await service.logout(userId, currentClaims.sid, 'refresh-token');
 
-    expect(cacheService.revokeRefreshTokenFamily).toHaveBeenCalledWith(
+    expect(cacheService.revokeSession).toHaveBeenCalledWith(
       userId,
       currentClaims.sid,
     );
+  });
+
+  it('revokes every session owned by a user', async () => {
+    await service.logoutAll(userId);
+
+    expect(cacheService.revokeUserSessions).toHaveBeenCalledWith(userId);
   });
 
   it('rejects malformed refresh-token claims', async () => {

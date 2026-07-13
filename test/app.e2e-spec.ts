@@ -111,17 +111,51 @@ describe('AuthController (e2e)', () => {
       .post('/auth/refresh')
       .send({ refreshToken: logoutRefreshToken })
       .expect(401);
+
+    await request(app.getHttpServer())
+      .get('/auth/me')
+      .set({ Authorization: `Bearer ${logoutAccessToken}` })
+      .expect(401);
   });
 
-  it('/auth/login (POST) enforces its stricter rate limit', async () => {
+  it('/auth/logout-all (POST) revokes every user session', async () => {
+    const firstLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'john@smith.com', password: 'password' })
+      .expect(200);
+    const secondLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'john@smith.com', password: 'password' })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/auth/logout-all')
+      .set({ Authorization: `Bearer ${firstLogin.body.token.accessToken}` })
+      .expect(200);
+
     await Promise.all(
-      Array.from({ length: 3 }, () =>
+      [firstLogin, secondLogin].map((login) =>
         request(app.getHttpServer())
-          .post('/auth/login')
-          .send({ email: 'missing@example.com', password: 'invalid-password' })
+          .get('/auth/me')
+          .set({ Authorization: `Bearer ${login.body.token.accessToken}` })
           .expect(401),
       ),
     );
+    await Promise.all(
+      [firstLogin, secondLogin].map((login) =>
+        request(app.getHttpServer())
+          .post('/auth/refresh')
+          .send({ refreshToken: login.body.token.refreshToken })
+          .expect(401),
+      ),
+    );
+  });
+
+  it('/auth/login (POST) enforces its stricter rate limit', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'missing@example.com', password: 'invalid-password' })
+      .expect(401);
 
     await request(app.getHttpServer())
       .post('/auth/login')

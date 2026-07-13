@@ -91,6 +91,22 @@ export class AuthController {
     };
   }
 
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  @Auth()
+  @ApiOkResponse({
+    description: 'Successfully logged out from all sessions',
+  })
+  async logoutAll(@AuthUser() user: AuthenticatedUser): Promise<{
+    message: string;
+  }> {
+    await this.authService.logoutAll(user.id);
+
+    return {
+      message: 'Successfully logged out from all sessions',
+    };
+  }
+
   @Post('register')
   @Public()
   @Throttle({ default: { limit: 3, ttl: AUTH_RATE_LIMIT_TTL } })

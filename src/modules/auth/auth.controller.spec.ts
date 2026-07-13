@@ -80,6 +80,7 @@ describe('AuthController', () => {
     createTokens: jest.fn(),
     refreshAccessToken: jest.fn(),
     logout: jest.fn(),
+    logoutAll: jest.fn(),
   };
 
   const mockUserService = {
@@ -219,6 +220,17 @@ describe('AuthController', () => {
         mockUser.authentication.sessionId,
         'current-refresh-token',
       );
+    });
+  });
+
+  describe('POST /auth/logout-all', () => {
+    it('revokes every session owned by the authenticated user', async () => {
+      mockAuthService.logoutAll.mockResolvedValue(undefined);
+
+      await expect(controller.logoutAll(mockUser)).resolves.toEqual({
+        message: 'Successfully logged out from all sessions',
+      });
+      expect(authService.logoutAll).toHaveBeenCalledWith(mockUser.id);
     });
   });
 

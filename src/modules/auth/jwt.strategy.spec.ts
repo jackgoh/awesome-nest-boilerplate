@@ -22,6 +22,7 @@ describe('JwtStrategy', () => {
   };
 
   let cacheService: {
+    isSessionBlacklisted: jest.Mock;
     resolveUserKey: jest.Mock;
     get: jest.Mock;
     insert: jest.Mock;
@@ -31,6 +32,7 @@ describe('JwtStrategy', () => {
 
   beforeEach(() => {
     cacheService = {
+      isSessionBlacklisted: jest.fn().mockResolvedValue(false),
       resolveUserKey: jest.fn().mockResolvedValue(`user:${userId}`),
       get: jest.fn().mockResolvedValue(null),
       insert: jest.fn().mockResolvedValue(undefined),
@@ -97,6 +99,27 @@ describe('JwtStrategy', () => {
     expect(userService.findOne).not.toHaveBeenCalled();
   });
 
+  it('rejects access tokens from a blacklisted session', async () => {
+    cacheService.isSessionBlacklisted.mockResolvedValue(true);
+
+    await expect(strategy.validate(claims)).rejects.toThrow(
+      'Access token has been revoked',
+    );
+    expect(cacheService.resolveUserKey).not.toHaveBeenCalled();
+    expect(userService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when Redis cannot verify session revocation', async () => {
+    cacheService.isSessionBlacklisted.mockRejectedValue(
+      new Error('Redis offline'),
+    );
+
+    await expect(strategy.validate(claims)).rejects.toThrow(
+      'Token revocation service unavailable',
+    );
+    expect(userService.findOne).not.toHaveBeenCalled();
+  });
+
   it('falls back to the database when the cache generation is unavailable', async () => {
     cacheService.resolveUserKey.mockRejectedValue(new Error('Redis offline'));
 
@@ -115,6 +138,7 @@ describe('JwtStrategy', () => {
     await expect(
       strategy.validate(claimsWithoutSession),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(cacheService.isSessionBlacklisted).not.toHaveBeenCalled();
     expect(cacheService.get).not.toHaveBeenCalled();
   });
 });

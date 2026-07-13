@@ -137,7 +137,7 @@ export class AuthService {
     });
 
     if (!isRotated) {
-      await this.cacheService.revokeRefreshTokenFamily(claims.sub, claims.sid);
+      await this.cacheService.revokeSession(claims.sub, claims.sid);
 
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -188,6 +188,10 @@ export class AuthService {
 
     const claims = claimsResult.data;
 
-    await this.cacheService.revokeRefreshTokenFamily(claims.sub, claims.sid);
+    await this.cacheService.revokeSession(claims.sub, claims.sid);
+  }
+
+  async logoutAll(userId: Uuid): Promise<void> {
+    await this.cacheService.revokeUserSessions(userId);
   }
 }

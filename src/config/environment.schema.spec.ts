@@ -77,6 +77,16 @@ describe('environment configuration', () => {
     ).toThrow(/CORS_ORIGINS\.0:.*TRUST_PROXY_HOPS:/);
   });
 
+  it('requires refresh sessions to outlive their access tokens', () => {
+    expect(() =>
+      validateEnvironment({
+        ...validEnvironment(),
+        JWT_EXPIRATION_TIME: '3600',
+        JWT_REFRESH_EXPIRATION_TIME: '900',
+      }),
+    ).toThrow(/JWT_REFRESH_EXPIRATION_TIME:/);
+  });
+
   it('uses deterministic environment-file precedence and isolates production', () => {
     expect(getEnvironmentFilePaths('test')).toEqual([
       '.env.test.local',

@@ -45,8 +45,17 @@ refresh-token family shared by its access and refresh tokens.
 
 Each login creates a refresh-token family. Rotation compares and replaces the
 active token through one Redis script. A replayed token revokes every active
-token in its family. Logout also validates that the refresh-token subject
-and session match the authenticated access token before revoking the family.
+token in its family and blacklists that session's access tokens. Logout also
+validates that the refresh-token subject and session match the authenticated
+access token before atomically revoking the family and blacklisting its `sid`.
+
+Redis keeps an expiring sorted index of active session IDs per user. The
+`/auth/logout-all` endpoint uses that index in one script to revoke every
+refresh-token family and blacklist every corresponding `sid`. Each blacklist
+expires with its refresh session; configuration validation guarantees that a
+refresh session cannot expire before its access tokens. JWT validation fails
+closed if Redis cannot verify revocation state. A new login receives a new
+`sid`, so it is not blocked by an earlier user-wide logout.
 
 ## Persistence and transactions
 

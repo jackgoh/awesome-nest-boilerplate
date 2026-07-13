@@ -1,4 +1,9 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { plainToInstance } from 'class-transformer';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -40,6 +45,26 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     const claims = claimsResult.data;
+
+    try {
+      if (
+        await this.cacheService.isSessionBlacklisted(claims.sub, claims.sid)
+      ) {
+        throw new UnauthorizedException('Access token has been revoked');
+      }
+    } catch (error: unknown) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Unable to verify token revocation for user ${claims.sub}: ${formatError(error)}`,
+      );
+      throw new ServiceUnavailableException(
+        'Token revocation service unavailable',
+      );
+    }
+
     let userCacheKey: string | undefined;
 
     try {
