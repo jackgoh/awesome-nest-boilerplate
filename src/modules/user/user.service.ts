@@ -138,8 +138,10 @@ export class UserService {
     userId: Uuid,
     createSettingsDto: CreateSettingsDto,
   ): Promise<UserSettingsEntity> {
+    const { isEmailVerified, isPhoneVerified } = createSettingsDto;
     const userSettings = this.userSettingsRepository.create({
-      ...createSettingsDto,
+      isEmailVerified,
+      isPhoneVerified,
       userId,
     });
 

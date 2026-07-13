@@ -24,12 +24,13 @@ interface IRouteArgumentMetadata {
 
 const BODY_ROUTE_PARAM_TYPE = 3;
 
-function explore(instance: object, propertyKey: string | symbol) {
-  const types: Array<Type<unknown>> = Reflect.getMetadata(
-    PARAMTYPES_METADATA,
-    instance,
-    propertyKey,
-  );
+function explore(
+  instance: object,
+  propertyKey: string | symbol,
+): Type<unknown> | undefined {
+  const types =
+    (Reflect.getMetadata(PARAMTYPES_METADATA, instance, propertyKey) as
+      Array<Type<unknown>> | undefined) ?? [];
   const routeArgsMetadata =
     (Reflect.getMetadata(
       ROUTE_ARGS_METADATA,
@@ -50,7 +51,9 @@ function RegisterModels(): MethodDecorator {
   return (target, propertyKey, descriptor: PropertyDescriptor) => {
     const body = explore(target, propertyKey);
 
-    return body && ApiExtraModels(body)(target, propertyKey, descriptor);
+    if (body) {
+      ApiExtraModels(body)(target, propertyKey, descriptor);
+    }
   };
 }
 

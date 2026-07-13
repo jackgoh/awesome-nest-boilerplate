@@ -157,7 +157,7 @@ export const environmentSchema = z
     THROTTLER_TTL: durationInMillisecondsFromEnvironment.default(60_000),
     THROTTLER_LIMIT: positiveIntegerFromEnvironment.default(10),
   })
-  .passthrough();
+  .loose();
 
 export type Environment = z.infer<typeof environmentSchema>;
 

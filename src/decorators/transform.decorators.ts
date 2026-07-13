@@ -1,8 +1,27 @@
 import { Transform, TransformationType } from 'class-transformer';
-import { parsePhoneNumber } from 'libphonenumber-js';
-import { castArray, isArray, isNil, map, trim } from 'lodash';
+import { parsePhoneNumberWithError } from 'libphonenumber-js';
+import { castArray, isNil } from 'lodash';
 
 import { GeneratorProvider } from '../providers';
+
+function transformStringValue(
+  value: unknown,
+  transform: (value: string) => string,
+): unknown {
+  if (typeof value === 'string') {
+    return transform(value);
+  }
+
+  if (Array.isArray(value)) {
+    const items = value as unknown[];
+
+    return items.map((item) =>
+      typeof item === 'string' ? transform(item) : item,
+    );
+  }
+
+  return value;
+}
 
 /**
  * @description trim spaces from start and end, replace multiple spaces with one.
@@ -16,20 +35,20 @@ import { GeneratorProvider } from '../providers';
  */
 export function Trim(): PropertyDecorator {
   return Transform((params) => {
-    const value = params.value as string[] | string;
+    const value: unknown = params.value;
 
-    if (isArray(value)) {
-      return map(value, (v) => trim(v).replaceAll(/\s\s+/g, ' '));
-    }
-
-    return trim(value).replaceAll(/\s\s+/g, ' ');
+    return transformStringValue(value, (item) =>
+      item.trim().replaceAll(/\s\s+/g, ' '),
+    );
   });
 }
 
 export function ToBoolean(): PropertyDecorator {
   return Transform(
     (params) => {
-      switch (params.value) {
+      const value: unknown = params.value;
+
+      switch (value) {
         case 'true': {
           return true;
         }
@@ -39,7 +58,7 @@ export function ToBoolean(): PropertyDecorator {
         }
 
         default: {
-          return params.value;
+          return value;
         }
       }
     },
@@ -59,9 +78,9 @@ export function ToBoolean(): PropertyDecorator {
 export function ToInt(): PropertyDecorator {
   return Transform(
     (params) => {
-      const value = params.value as string;
+      const value: unknown = params.value;
 
-      return Number.parseInt(value, 10);
+      return typeof value === 'string' ? Number.parseInt(value, 10) : value;
     },
     { toClassOnly: true },
   );
@@ -78,7 +97,7 @@ export function ToInt(): PropertyDecorator {
 export function ToArray(): PropertyDecorator {
   return Transform(
     (params) => {
-      const value = params.value;
+      const value: unknown = params.value;
 
       if (isNil(value)) {
         return [];
@@ -93,17 +112,13 @@ export function ToArray(): PropertyDecorator {
 export function ToLowerCase(): PropertyDecorator {
   return Transform(
     (params) => {
-      const value = params.value;
+      const value: unknown = params.value;
 
       if (!value) {
         return;
       }
 
-      if (!Array.isArray(value)) {
-        return value.toLowerCase();
-      }
-
-      return value.map((v) => v.toLowerCase());
+      return transformStringValue(value, (item) => item.toLowerCase());
     },
     {
       toClassOnly: true,
@@ -114,17 +129,13 @@ export function ToLowerCase(): PropertyDecorator {
 export function ToUpperCase(): PropertyDecorator {
   return Transform(
     (params) => {
-      const value = params.value;
+      const value: unknown = params.value;
 
       if (!value) {
         return;
       }
 
-      if (!Array.isArray(value)) {
-        return value.toUpperCase();
-      }
-
-      return value.map((v) => v.toUpperCase());
+      return transformStringValue(value, (item) => item.toUpperCase());
     },
     {
       toClassOnly: true,
@@ -134,7 +145,11 @@ export function ToUpperCase(): PropertyDecorator {
 
 export function S3UrlParser(): PropertyDecorator {
   return Transform((params) => {
-    const key = params.value as string;
+    const key: unknown = params.value;
+
+    if (typeof key !== 'string') {
+      return key;
+    }
 
     switch (params.type) {
       case TransformationType.CLASS_TO_PLAIN: {
@@ -145,7 +160,7 @@ export function S3UrlParser(): PropertyDecorator {
         return GeneratorProvider.getS3Key(key);
       }
 
-      default: {
+      case TransformationType.CLASS_TO_CLASS: {
         return key;
       }
     }
@@ -153,5 +168,11 @@ export function S3UrlParser(): PropertyDecorator {
 }
 
 export function PhoneNumberSerializer(): PropertyDecorator {
-  return Transform((params) => parsePhoneNumber(params.value as string).number);
+  return Transform((params) => {
+    const value: unknown = params.value;
+
+    return typeof value === 'string'
+      ? parsePhoneNumberWithError(value).number
+      : value;
+  });
 }

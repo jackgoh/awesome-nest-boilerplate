@@ -49,12 +49,11 @@ export function ApiUUIDPropertyOptional(
   return ApiUUIDProperty({ required: false, ...options });
 }
 
-export function ApiEnumProperty<TEnum>(
+export function ApiEnumProperty<TEnum extends object>(
   getEnum: () => TEnum,
   options: Omit<ApiPropertyOptions, 'type'> & { each?: boolean } = {},
 ): PropertyDecorator {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const enumValue = getEnum() as any;
+  const enumValue = getEnum() as Record<string, unknown>;
 
   return ApiProperty({
     enum: enumValue,
@@ -71,7 +70,7 @@ export function ApiEnumProperty<TEnum>(
   });
 }
 
-export function ApiEnumPropertyOptional<TEnum>(
+export function ApiEnumPropertyOptional<TEnum extends object>(
   getEnum: () => TEnum,
   options: Omit<
     ApiPropertyOptions,

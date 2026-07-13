@@ -10,6 +10,10 @@ import { UserEntity } from '../user/user.entity';
 import { UserService } from '../user/user.service';
 import { type AccessTokenClaims, accessTokenClaimsSchema } from './jwt-claims';
 
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly logger = new Logger(JwtStrategy.name);
@@ -44,21 +48,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
       if (cachedJsonUser) {
         try {
-          const plainUser = JSON.parse(cachedJsonUser);
+          const plainUser: unknown = JSON.parse(cachedJsonUser);
 
           return this.createPrincipal(
             plainToInstance(UserEntity, plainUser),
             claims,
           );
-        } catch (e) {
+        } catch (error: unknown) {
           this.logger.error(
-            `Error deserializing cached user ${claims.sub}: ${e}. Proceeding to DB lookup.`,
+            `Error deserializing cached user ${claims.sub}: ${formatError(error)}. Proceeding to DB lookup.`,
           );
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(
-        `Error fetching user ${claims.sub} from cache: ${error}. Proceeding to DB lookup.`,
+        `Error fetching user ${claims.sub} from cache: ${formatError(error)}. Proceeding to DB lookup.`,
       );
     }
 
@@ -99,8 +103,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           JSON.stringify(user),
           this.configService.cacheConfig.userPermissionsTtl,
         );
-      } catch (cacheError) {
-        this.logger.error(`Failed to cache user ${claims.sub}: ${cacheError}`);
+      } catch (error: unknown) {
+        this.logger.error(
+          `Failed to cache user ${claims.sub}: ${formatError(error)}`,
+        );
       }
     }
 

@@ -32,7 +32,10 @@ export abstract class AbstractEntity<
   updatedAt!: Date;
 
   toDto(options?: O): DTO {
-    const dtoClass = Object.getPrototypeOf(this).dtoClass;
+    const prototype = Object.getPrototypeOf(this) as {
+      dtoClass?: new (entity: AbstractEntity<DTO, O>, options?: O) => DTO;
+    };
+    const { dtoClass } = prototype;
 
     if (!dtoClass) {
       throw new Error(
