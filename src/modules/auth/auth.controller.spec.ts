@@ -4,6 +4,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { type Uuid } from '../../types';
 import { type AuthenticatedUser } from '../../types/auth-user.type';
 import { type RoleEntity } from '../iam/entities/role.entity';
+import { AccountStatus } from '../user/account-status.enum';
 import { type UserEntity } from '../user/user.entity';
 import { UserService } from '../user/user.service';
 import { AuthController } from './auth.controller';
@@ -21,6 +22,7 @@ describe('AuthController', () => {
   const mockRole: RoleEntity = {
     id: 'role-id-1' as Uuid,
     name: 'user',
+    isSystem: true,
     description: 'Standard user role',
     permissions: [],
     users: [],
@@ -41,6 +43,12 @@ describe('AuthController', () => {
     password: 'hashedPassword',
     phone: '+1234567890',
     avatar: null,
+    status: AccountStatus.ACTIVE,
+    authorizationRevision: 1,
+    sessionVersion: 1,
+    suspendedAt: null,
+    suspendedReason: null,
+    deletedAt: null,
     roles: [mockRole],
     directPermissions: [],
     computedPermissions: [],
@@ -432,6 +440,7 @@ describe('AuthController', () => {
       const adminRole: RoleEntity = {
         id: 'role-id-2' as Uuid,
         name: 'admin',
+        isSystem: true,
         description: 'Administrator role',
         permissions: [],
         users: [],

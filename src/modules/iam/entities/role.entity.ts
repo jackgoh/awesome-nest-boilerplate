@@ -10,6 +10,9 @@ import { PermissionEntity } from './permission.entity';
 @Entity({ name: 'roles' })
 @UseDto(RoleDto)
 export class RoleEntity extends AbstractEntity<RoleDto> {
+  @Column({ type: 'boolean', default: false })
+  isSystem!: boolean;
+
   @Column({ type: 'varchar', length: 255, unique: true })
   @Index()
   name!: string;

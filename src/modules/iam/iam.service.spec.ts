@@ -56,6 +56,7 @@ describe('IAMService', () => {
   const role = {
     id: roleId,
     name: 'moderator',
+    isSystem: false,
     description: 'Moderates content',
     permissions: [],
     createdAt: new Date(),

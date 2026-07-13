@@ -180,6 +180,14 @@ export class CacheService {
     await invalidateUserAuthorizationVersions(this.redisClient, userIds);
   }
 
+  async deleteUserAuthorizationCache(userId: Uuid): Promise<void> {
+    const keys = await this.getKeys(`user:{${userId}}:authz:*`);
+
+    if (keys.length > 0) {
+      await this.redisClient.del(...keys);
+    }
+  }
+
   getRefreshTokenKey(userId: Uuid, familyId: string, tokenId: string): string {
     return `r_token:{${userId}}:session:${familyId}:token:${tokenId}`;
   }

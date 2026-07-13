@@ -49,6 +49,7 @@ export class AuthController {
     const tokens = await this.authService.createTokens({
       userId: userEntity.id,
       roles: userEntity.roles,
+      sessionVersion: userEntity.sessionVersion,
     });
 
     return new LoginPayloadDto(userEntity.toDto(), tokens);

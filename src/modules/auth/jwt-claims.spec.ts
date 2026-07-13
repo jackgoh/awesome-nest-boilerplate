@@ -8,6 +8,7 @@ const registeredClaims = {
   sub: '57f9af62-eabc-4ee8-9a1c-b010a51ae31e',
   jti: '0428b4df-e191-4c0d-b5aa-95cc43eab8aa',
   sid: 'ab8f0de7-91ee-4994-b811-79651e28217a',
+  sv: 1,
   iss: 'awesome-nest-boilerplate-test',
   aud: 'awesome-nest-api-test',
   iat: 1_700_000_000,

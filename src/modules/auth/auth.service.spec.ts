@@ -8,6 +8,8 @@ import { type ApiConfigService } from '../../shared/services/api-config.service'
 import { type Uuid } from '../../types';
 import { type CacheService } from '../cache/cache.service';
 import { type RoleEntity } from '../iam/entities/role.entity';
+import { AccountStatus } from '../user/account-status.enum';
+import { type AccountAccessStateService } from '../user/account-access-state.service';
 import { type UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
 
@@ -30,6 +32,7 @@ describe('AuthService', () => {
     sub: userId,
     jti: '0428b4df-e191-4c0d-b5aa-95cc43eab8aa',
     sid: 'ab8f0de7-91ee-4994-b811-79651e28217a',
+    sv: 1,
     iss: 'awesome-nest-boilerplate-test',
     aud: 'awesome-nest-api-test',
     iat: 1_700_000_000,
@@ -41,6 +44,7 @@ describe('AuthService', () => {
   let jwtService: IJwtServiceMock;
   let cacheService: ICacheServiceMock;
   let userService: { findOne: jest.Mock };
+  let accountAccessStateService: { requireActive: jest.Mock };
 
   beforeEach(() => {
     jwtService = {
@@ -62,7 +66,19 @@ describe('AuthService', () => {
       revokeUserSessions: jest.fn().mockResolvedValue(undefined),
     };
     userService = {
-      findOne: jest.fn().mockResolvedValue({ id: userId, roles: [role] }),
+      findOne: jest.fn().mockResolvedValue({
+        id: userId,
+        roles: [role],
+        status: AccountStatus.ACTIVE,
+      }),
+    };
+    accountAccessStateService = {
+      requireActive: jest.fn().mockResolvedValue({
+        id: userId,
+        status: AccountStatus.ACTIVE,
+        authorizationRevision: 1,
+        sessionVersion: 1,
+      }),
     };
     const configService = {
       authConfig: {
@@ -78,11 +94,16 @@ describe('AuthService', () => {
       configService,
       userService as unknown as UserService,
       cacheService as unknown as CacheService,
+      accountAccessStateService as unknown as AccountAccessStateService,
     );
   });
 
   it('creates a new refresh-token family for login', async () => {
-    const tokens = await service.createTokens({ userId, roles: [role] });
+    const tokens = await service.createTokens({
+      userId,
+      roles: [role],
+      sessionVersion: 1,
+    });
 
     expect(tokens).toMatchObject({
       accessToken: 'signed-access-token',
@@ -100,6 +121,7 @@ describe('AuthService', () => {
         sub: userId,
         jti: expect.any(String),
         sid: expect.any(String),
+        sv: 1,
         type: TokenType.ACCESS_TOKEN,
         roles: ['user'],
       }),
@@ -110,6 +132,7 @@ describe('AuthService', () => {
         sub: userId,
         jti: expect.any(String),
         sid: expect.any(String),
+        sv: 1,
         type: TokenType.REFRESH_TOKEN,
       }),
       { expiresIn: 604_800 },
@@ -123,6 +146,10 @@ describe('AuthService', () => {
       where: { id: userId },
       relations: { roles: true },
     });
+    expect(accountAccessStateService.requireActive).toHaveBeenCalledWith(
+      userId,
+      1,
+    );
     expect(cacheService.rotateRefreshToken).toHaveBeenCalledWith(
       expect.objectContaining({
         userId,

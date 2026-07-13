@@ -118,10 +118,12 @@ export async function seedRoles(manager: EntityManager): Promise<Uuid[]> {
         name: roleConfig.name,
         description: roleConfig.description,
         permissions,
+        isSystem: true,
       });
     } else {
       role.permissions = permissions;
       role.description = roleConfig.description;
+      role.isSystem = true;
     }
 
     await roleRepository.save(role);

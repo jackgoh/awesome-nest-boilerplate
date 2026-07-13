@@ -9,6 +9,8 @@ import { TokenType } from '../../constants';
 import { ApiConfigService } from '../../shared/services/api-config.service';
 import { CacheService } from '../cache/cache.service';
 import { type RoleEntity } from '../iam/entities/role.entity';
+import { AccountStatus } from '../user/account-status.enum';
+import { AccountAccessStateService } from '../user/account-access-state.service';
 import { type UserEntity } from '../user/user.entity';
 import { UserService } from '../user/user.service';
 import { TokenPayloadDto } from './dto/token-payload.dto';
@@ -18,6 +20,7 @@ import { refreshTokenClaimsSchema } from './jwt-claims';
 interface ITokenSubject {
   userId: Uuid;
   roles: RoleEntity[];
+  sessionVersion: number;
 }
 
 interface ISignedTokens {
@@ -36,6 +39,7 @@ export class AuthService {
     private configService: ApiConfigService,
     private userService: UserService,
     private cacheService: CacheService,
+    private accountAccessStateService: AccountAccessStateService,
   ) {}
 
   async createTokens(data: ITokenSubject): Promise<TokenPayloadDto> {
@@ -67,6 +71,7 @@ export class AuthService {
           sub: data.userId,
           jti: accessTokenId,
           sid: familyId,
+          sv: data.sessionVersion,
           type: TokenType.ACCESS_TOKEN,
           roles: roleNames,
         },
@@ -79,6 +84,7 @@ export class AuthService {
           sub: data.userId,
           jti: tokenId,
           sid: familyId,
+          sv: data.sessionVersion,
           type: TokenType.REFRESH_TOKEN,
         },
         {
@@ -114,6 +120,8 @@ export class AuthService {
 
     const claims = claimsResult.data;
 
+    await this.accountAccessStateService.requireActive(claims.sub, claims.sv);
+
     const user = await this.userService.findOne({
       where: { id: claims.sub },
       relations: { roles: true },
@@ -124,7 +132,11 @@ export class AuthService {
     }
 
     const replacement = await this.signTokens(
-      { userId: user.id, roles: user.roles },
+      {
+        userId: user.id,
+        roles: user.roles,
+        sessionVersion: claims.sv,
+      },
       claims.sid,
     );
     const isRotated = await this.cacheService.rotateRefreshToken({
@@ -151,7 +163,7 @@ export class AuthService {
       relations: { roles: true },
     });
 
-    if (!user) {
+    if (!user || user.status !== AccountStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
     }
 

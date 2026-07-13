@@ -11,6 +11,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ApiConfigService } from '../../shared/services/api-config.service';
 import { type AuthenticatedUser } from '../../types/auth-user.type';
 import { CacheService } from '../cache/cache.service';
+import { AccountAccessStateService } from '../user/account-access-state.service';
 import { UserEntity } from '../user/user.entity';
 import { UserService } from '../user/user.service';
 import { type AccessTokenClaims, accessTokenClaimsSchema } from './jwt-claims';
@@ -27,6 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly configService: ApiConfigService,
     private userService: UserService,
     private cacheService: CacheService,
+    private accountAccessStateService: AccountAccessStateService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -65,10 +67,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
     }
 
-    let userCacheKey: string | undefined;
+    const accountState = await this.accountAccessStateService.requireActive(
+      claims.sub,
+      claims.sv,
+    );
+    const userCacheKey = this.cacheService.getUserKey(
+      claims.sub,
+      String(accountState.authorizationRevision),
+    );
 
     try {
-      userCacheKey = await this.cacheService.resolveUserKey(claims.sub);
       const cachedJsonUser = await this.cacheService.get(userCacheKey);
 
       if (cachedJsonUser) {
@@ -121,18 +129,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found');
     }
 
-    if (userCacheKey) {
-      try {
-        await this.cacheService.insert(
-          userCacheKey,
-          JSON.stringify(user),
-          this.configService.cacheConfig.userPermissionsTtl,
-        );
-      } catch (error: unknown) {
-        this.logger.error(
-          `Failed to cache user ${claims.sub}: ${formatError(error)}`,
-        );
-      }
+    try {
+      await this.cacheService.insert(
+        userCacheKey,
+        JSON.stringify(user),
+        this.configService.cacheConfig.userPermissionsTtl,
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to cache user ${claims.sub}: ${formatError(error)}`,
+      );
     }
 
     return this.createPrincipal(user, claims);

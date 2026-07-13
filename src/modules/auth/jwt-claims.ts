@@ -12,6 +12,7 @@ const registeredClaims = {
   sub: z.uuid().transform((subject) => subject as Uuid),
   jti: z.uuid(),
   sid: z.uuid(),
+  sv: z.number().int().positive(),
   iss: z.string().min(1),
   aud: jwtAudienceSchema,
   iat: z.number().int().nonnegative(),

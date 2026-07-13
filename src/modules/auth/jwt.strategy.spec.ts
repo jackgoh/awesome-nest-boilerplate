@@ -4,6 +4,8 @@ import { TokenType } from '../../constants';
 import { type ApiConfigService } from '../../shared/services/api-config.service';
 import { type Uuid } from '../../types';
 import { type CacheService } from '../cache/cache.service';
+import { AccountStatus } from '../user/account-status.enum';
+import { type AccountAccessStateService } from '../user/account-access-state.service';
 import { type UserService } from '../user/user.service';
 import { JwtStrategy } from './jwt.strategy';
 
@@ -13,6 +15,7 @@ describe('JwtStrategy', () => {
     sub: userId,
     jti: '0428b4df-e191-4c0d-b5aa-95cc43eab8aa',
     sid: 'ab8f0de7-91ee-4994-b811-79651e28217a',
+    sv: 1,
     iss: 'awesome-nest-boilerplate-test',
     aud: 'awesome-nest-api-test',
     iat: 1_700_000_000,
@@ -23,17 +26,18 @@ describe('JwtStrategy', () => {
 
   let cacheService: {
     isSessionBlacklisted: jest.Mock;
-    resolveUserKey: jest.Mock;
+    getUserKey: jest.Mock;
     get: jest.Mock;
     insert: jest.Mock;
   };
   let userService: { findOne: jest.Mock };
+  let accountAccessStateService: { requireActive: jest.Mock };
   let strategy: JwtStrategy;
 
   beforeEach(() => {
     cacheService = {
       isSessionBlacklisted: jest.fn().mockResolvedValue(false),
-      resolveUserKey: jest.fn().mockResolvedValue(`user:${userId}`),
+      getUserKey: jest.fn().mockReturnValue(`user:{${userId}}:authz:7`),
       get: jest.fn().mockResolvedValue(null),
       insert: jest.fn().mockResolvedValue(undefined),
     };
@@ -44,6 +48,14 @@ describe('JwtStrategy', () => {
         roles: [],
         directPermissions: [],
         computedPermissions: [],
+      }),
+    };
+    accountAccessStateService = {
+      requireActive: jest.fn().mockResolvedValue({
+        id: userId,
+        status: AccountStatus.ACTIVE,
+        authorizationRevision: 7,
+        sessionVersion: 1,
       }),
     };
     const configService = {
@@ -59,6 +71,7 @@ describe('JwtStrategy', () => {
       configService,
       userService as unknown as UserService,
       cacheService as unknown as CacheService,
+      accountAccessStateService as unknown as AccountAccessStateService,
     );
   });
 
@@ -73,7 +86,7 @@ describe('JwtStrategy', () => {
 
     expect(cachedUser).not.toHaveProperty('authentication');
     expect(cacheService.insert).toHaveBeenCalledWith(
-      `user:${userId}`,
+      `user:{${userId}}:authz:7`,
       expect.any(String),
       120,
     );
@@ -105,7 +118,7 @@ describe('JwtStrategy', () => {
     await expect(strategy.validate(claims)).rejects.toThrow(
       'Access token has been revoked',
     );
-    expect(cacheService.resolveUserKey).not.toHaveBeenCalled();
+    expect(accountAccessStateService.requireActive).not.toHaveBeenCalled();
     expect(userService.findOne).not.toHaveBeenCalled();
   });
 
@@ -120,14 +133,14 @@ describe('JwtStrategy', () => {
     expect(userService.findOne).not.toHaveBeenCalled();
   });
 
-  it('falls back to the database when the cache generation is unavailable', async () => {
-    cacheService.resolveUserKey.mockRejectedValue(new Error('Redis offline'));
+  it('falls back to the database when the authorization cache is unavailable', async () => {
+    cacheService.get.mockRejectedValue(new Error('Redis offline'));
 
     const principal = await strategy.validate(claims);
 
     expect(principal.id).toBe(userId);
     expect(userService.findOne).toHaveBeenCalled();
-    expect(cacheService.insert).not.toHaveBeenCalled();
+    expect(cacheService.insert).toHaveBeenCalled();
   });
 
   it('rejects access claims without a session identifier', async () => {
