@@ -19,26 +19,6 @@ export class ApiConfigService {
     GeneratorProvider.configureS3(this.config.aws);
   }
 
-  get isDevelopment(): boolean {
-    return this.nodeEnv === 'development';
-  }
-
-  get isProduction(): boolean {
-    return this.nodeEnv === 'production';
-  }
-
-  get isTest(): boolean {
-    return this.nodeEnv === 'test';
-  }
-
-  get nodeEnv(): ConfigType<typeof configuration>['app']['nodeEnv'] {
-    return this.config.app.nodeEnv;
-  }
-
-  get fallbackLanguage(): string {
-    return this.config.app.fallbackLanguage;
-  }
-
   get throttlerConfigs(): ThrottlerOptions {
     return this.config.throttler;
   }

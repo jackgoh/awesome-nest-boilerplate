@@ -12,15 +12,15 @@ export class PageOptionsDto {
   readonly order: Order = Order.ASC;
 
   @NumberFieldOptional({
-    minimum: 1,
+    min: 1,
     default: 1,
     int: true,
   })
   readonly page: number = 1;
 
   @NumberFieldOptional({
-    minimum: 1,
-    maximum: 50,
+    min: 1,
+    max: 50,
     default: 10,
     int: true,
   })

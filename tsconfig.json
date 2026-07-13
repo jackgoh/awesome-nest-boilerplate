@@ -3,7 +3,7 @@
     "rootDir": "src",
     "module": "NodeNext",
     "declaration": false,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "removeComments": true,
     "noLib": false,
     "importHelpers": true,

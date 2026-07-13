@@ -25,7 +25,7 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   @ApiPageOkResponse({
     description: 'Get users list',
-    type: PageDto,
+    type: UserDto,
   })
   getUsers(
     @Query(new ValidationPipe({ transform: true }))

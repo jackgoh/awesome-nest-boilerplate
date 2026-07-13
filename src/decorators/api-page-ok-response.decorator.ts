@@ -17,7 +17,7 @@ export function ApiPageOkResponse<T extends Type>(options: {
           { $ref: getSchemaPath(PageDto) },
           {
             properties: {
-              results: {
+              data: {
                 type: 'array',
                 items: { $ref: getSchemaPath(options.type) },
               },

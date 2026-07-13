@@ -10,9 +10,7 @@ export interface IApplicationConfiguration {
     nodeEnv: Environment['NODE_ENV'];
     port: number;
     apiVersion?: string;
-    fallbackLanguage: string;
     documentationEnabled: boolean;
-    performanceMonitoringEnabled: boolean;
     corsOrigins: string[];
     trustProxyHops: number;
   };
@@ -47,8 +45,6 @@ export interface IApplicationConfiguration {
     db: number;
   };
   cache: {
-    defaultTtl: number;
-    maxItems: number;
     userPermissionsTtl: number;
   };
   throttler: {
@@ -68,9 +64,7 @@ export function createConfiguration(
       nodeEnv: environment.NODE_ENV,
       port: environment.PORT,
       apiVersion: environment.API_VERSION,
-      fallbackLanguage: environment.FALLBACK_LANGUAGE,
       documentationEnabled: environment.ENABLE_DOCUMENTATION,
-      performanceMonitoringEnabled: environment.ENABLE_PERFORMANCE_MONITORING,
       corsOrigins: environment.CORS_ORIGINS,
       trustProxyHops: environment.TRUST_PROXY_HOPS,
     },
@@ -105,8 +99,6 @@ export function createConfiguration(
       db: environment.REDIS_DB,
     },
     cache: {
-      defaultTtl: environment.CACHE_DEFAULT_TTL,
-      maxItems: environment.CACHE_MAX_ITEMS,
       userPermissionsTtl: environment.CACHE_USER_PERMISSIONS_TTL,
     },
     throttler: {

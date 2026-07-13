@@ -8,7 +8,12 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { Permission } from '../../constants/permissions.enum';
 import { Auth, UUIDParam } from '../../decorators';
@@ -27,7 +32,10 @@ export class IAMController {
   @Post('roles')
   @Auth([Permission.ROLE_MANAGE])
   @HttpCode(HttpStatus.CREATED)
-  @ApiOkResponse({ type: RoleDto, description: 'Successfully created role' })
+  @ApiCreatedResponse({
+    type: RoleDto,
+    description: 'Successfully created role',
+  })
   async createRole(@Body() createRoleDto: CreateRoleDto): Promise<RoleDto> {
     const role = await this.iamService.createRole(createRoleDto);
 
@@ -70,7 +78,7 @@ export class IAMController {
   @Delete('roles/:id')
   @Auth([Permission.ROLE_MANAGE])
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOkResponse({ description: 'Successfully deleted role' })
+  @ApiNoContentResponse({ description: 'Successfully deleted role' })
   async deleteRole(@UUIDParam('id') id: string): Promise<void> {
     await this.iamService.deleteRole(id);
   }
@@ -78,7 +86,7 @@ export class IAMController {
   @Post('permissions')
   @Auth([Permission.PERMISSION_MANAGE])
   @HttpCode(HttpStatus.CREATED)
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     type: PermissionDto,
     description: 'Successfully created permission',
   })

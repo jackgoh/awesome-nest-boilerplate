@@ -1,4 +1,3 @@
-import './boilerplate.polyfill';
 import 'reflect-metadata';
 
 import { loadEnvFile } from 'node:process';

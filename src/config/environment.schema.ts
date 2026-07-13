@@ -121,9 +121,7 @@ export const environmentSchema = z
       emptyStringToUndefined,
       z.string().trim().min(1).optional(),
     ),
-    FALLBACK_LANGUAGE: z.string().trim().min(1).default('en_US'),
     ENABLE_DOCUMENTATION: booleanFromEnvironment.default(false),
-    ENABLE_PERFORMANCE_MONITORING: booleanFromEnvironment.default(false),
     CORS_ORIGINS: corsOriginsFromEnvironment,
     TRUST_PROXY_HOPS: nonNegativeIntegerFromEnvironment.default(0),
 
@@ -154,8 +152,6 @@ export const environmentSchema = z
     REDIS_PASSWORD: z.preprocess(emptyStringToUndefined, z.string().optional()),
     REDIS_DB: nonNegativeIntegerFromEnvironment.default(0),
 
-    CACHE_DEFAULT_TTL: positiveIntegerFromEnvironment.default(300),
-    CACHE_MAX_ITEMS: positiveIntegerFromEnvironment.default(1000),
     CACHE_USER_PERMISSIONS_TTL: positiveIntegerFromEnvironment.default(300),
 
     THROTTLER_TTL: durationInMillisecondsFromEnvironment.default(60_000),
