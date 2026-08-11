@@ -14,18 +14,17 @@ export class UserSubscriber implements EntitySubscriberInterface<UserEntity> {
     return UserEntity;
   }
 
-  beforeInsert(event: InsertEvent<UserEntity>): void {
+  async beforeInsert(event: InsertEvent<UserEntity>): Promise<void> {
     if (event.entity.password) {
-      event.entity.password = generateHash(event.entity.password);
+      event.entity.password = await generateHash(event.entity.password);
     }
   }
 
-  beforeUpdate(event: UpdateEvent<UserEntity>): void {
-    // FIXME check event.databaseEntity.password
+  async beforeUpdate(event: UpdateEvent<UserEntity>): Promise<void> {
     const entity = event.entity as UserEntity;
 
     if (entity.password !== event.databaseEntity.password) {
-      entity.password = generateHash(entity.password!);
+      entity.password = await generateHash(entity.password!);
     }
   }
 }
