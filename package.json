@@ -87,13 +87,12 @@
     "@types/lodash": "^4.17.25",
     "@types/mime-types": "^3.0.1",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^26.2.0",
+    "@types/node": "24.13.3",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^7.2.1",
     "@types/uuid": "^11.0.0",
     "@typescript-eslint/eslint-plugin": "^8.67.0",
     "@typescript-eslint/parser": "^8.67.0",
-    "@vuepress/client": "2.0.0-rc.2",
     "cross-env": "^10.1.0",
     "eslint": "9.39.5",
     "eslint-config-prettier": "^10.1.8",
@@ -118,7 +117,7 @@
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "6.0.2",
+    "typescript": "6.0.3",
     "vue": "^3.5.41"
   },
   "jest": {
