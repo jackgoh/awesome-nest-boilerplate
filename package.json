@@ -22,8 +22,8 @@
     "schema:drop": "yarn run typeorm schema:drop -d ormconfig",
     "watch:dev": "ts-node-dev src/main.ts",
     "debug:dev": "cross-env TS_NODE_CACHE=false ts-node-dev --inspect --ignore '/^src/.*\\.spec\\.ts$/' src/main.ts",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint --fix . --ext .ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "NODE_ENV=test jest",
     "test:watch": "NODE_ENV=test jest --watch",
     "test:cov": "NODE_ENV=test jest --coverage",
@@ -129,7 +129,17 @@
     "rootDir": "src",
     "testRegex": ".spec.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "tsconfig": {
+            "types": [
+              "node",
+              "jest"
+            ]
+          }
+        }
+      ]
     },
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

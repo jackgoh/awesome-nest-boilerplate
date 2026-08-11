@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "rootDir": "src",
-    "module": "commonjs",
+    "module": "Node16",
     "declaration": false,
     "noImplicitAny": false,
     "removeComments": true,
@@ -15,14 +15,14 @@
     "target": "ES2022",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./src",
     "incremental": true,
     "strictNullChecks": true,
     "skipLibCheck": true,
     "noUnusedParameters": true,
     "noUnusedLocals": true,
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "Node16",
+    "types": ["node"]
   },
   "include": [
     "src/**/*"
