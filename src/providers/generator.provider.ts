@@ -1,4 +1,9 @@
-import { v1 as uuid } from 'uuid';
+import { randomBytes, randomInt } from 'node:crypto';
+import { createRequire } from 'node:module';
+
+const { v1: uuid } = createRequire(__filename)('uuid') as {
+  v1: () => string;
+};
 
 export class GeneratorProvider {
   static uuid(): string {
@@ -34,7 +39,7 @@ export class GeneratorProvider {
   }
 
   static generateVerificationCode(): string {
-    return Math.floor(1000 + Math.random() * 9000).toString();
+    return randomInt(1000, 10_000).toString();
   }
 
   static generatePassword(): string {
@@ -45,9 +50,9 @@ export class GeneratorProvider {
     let text = '';
 
     for (let i = 0; i < 4; i++) {
-      text += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
-      text += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
-      text += numbers.charAt(Math.floor(Math.random() * numbers.length));
+      text += uppercase.charAt(randomInt(uppercase.length));
+      text += lowercase.charAt(randomInt(lowercase.length));
+      text += numbers.charAt(randomInt(numbers.length));
     }
 
     return text;
@@ -58,7 +63,9 @@ export class GeneratorProvider {
    * @param length
    */
   static generateRandomString(length: number): string {
-    return Math.random()
+    const randomValue = randomBytes(6).readUIntBE(0, 6) / 2 ** 48;
+
+    return randomValue
       .toString(36)
       .replaceAll(/[^\dA-Za-z]+/g, '')
       .slice(0, Math.max(0, length));

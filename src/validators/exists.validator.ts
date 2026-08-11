@@ -59,6 +59,8 @@ export function Exists<E>(
       propertyName: propertyName as string,
       options: validationOptions,
       constraints,
+      // The deprecated constraint class is still required by class-validator registration.
+      // eslint-disable-next-line sonarjs/deprecation
       validator: ExistsValidator,
     });
 }

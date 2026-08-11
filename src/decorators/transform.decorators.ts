@@ -1,6 +1,6 @@
 import { Transform, TransformationType } from 'class-transformer';
-import { parsePhoneNumber } from 'libphonenumber-js';
-import { castArray, isArray, isNil, map, trim } from 'lodash';
+import { parsePhoneNumberWithError } from 'libphonenumber-js';
+import { castArray, isNil, trim } from 'lodash';
 
 import { GeneratorProvider } from '../providers';
 
@@ -15,11 +15,13 @@ import { GeneratorProvider } from '../providers';
  * @constructor
  */
 export function Trim(): PropertyDecorator {
+  // Arrays are transformed element-wise while scalar inputs remain scalar.
+  // eslint-disable-next-line sonarjs/function-return-type
   return Transform((params) => {
     const value = params.value as string[] | string;
 
-    if (isArray(value)) {
-      return map(value, (v) => trim(v).replaceAll(/\s\s+/g, ' '));
+    if (Array.isArray(value)) {
+      return value.map((item) => trim(item).replaceAll(/\s\s+/g, ' '));
     }
 
     return trim(value).replaceAll(/\s\s+/g, ' ');
@@ -153,5 +155,7 @@ export function S3UrlParser(): PropertyDecorator {
 }
 
 export function PhoneNumberSerializer(): PropertyDecorator {
-  return Transform((params) => parsePhoneNumber(params.value as string).number);
+  return Transform(
+    (params) => parsePhoneNumberWithError(params.value as string).number,
+  );
 }

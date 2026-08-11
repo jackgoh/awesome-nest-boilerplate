@@ -8,7 +8,7 @@ import {
 } from '../../../decorators';
 import { type UserEntity } from '../user.entity';
 
-// TODO, remove this class and use constructor's second argument's type
+// This alias documents the optional projection values accepted by the DTO.
 export type UserDtoOptions = Partial<{ isActive: boolean }>;
 
 export class UserDto extends AbstractDto {

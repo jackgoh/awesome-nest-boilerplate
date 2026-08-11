@@ -8,6 +8,10 @@ export class PublicStrategy extends PassportStrategy(Strategy, 'public') {
     super();
   }
 
+  validate(): Record<symbol, boolean> {
+    return { [Symbol.for('isPublic')]: true };
+  }
+
   authenticate(): void {
     return this.success({ [Symbol.for('isPublic')]: true });
   }

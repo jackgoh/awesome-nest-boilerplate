@@ -1,12 +1,18 @@
+import { createRequire } from 'node:module';
+
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { type ThrottlerOptions } from '@nestjs/throttler';
 import { type TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { isNil } from 'lodash';
-import { default as parse, type Units } from 'parse-duration';
 
 import { UserSubscriber } from '../../entity-subscribers/user-subscriber';
 import { SnakeNamingStrategy } from '../../snake-naming.strategy';
+
+const parse = createRequire(__filename)('parse-duration').default as (
+  value?: string,
+  format?: string,
+) => number | null;
 
 @Injectable()
 export class ApiConfigService {
@@ -34,11 +40,11 @@ export class ApiConfigService {
     }
   }
 
-  private getDuration(key: string, format?: Units): number {
+  private getDuration(key: string, format?: string): number {
     const value = this.getString(key);
     const duration = parse(value, format);
 
-    if (duration === undefined) {
+    if (duration === null) {
       throw new Error(`${key} environment variable is not a valid duration`);
     }
 
@@ -58,7 +64,7 @@ export class ApiConfigService {
   private getString(key: string): string {
     const value = this.get(key);
 
-    return value.replaceAll('\\n', '\n');
+    return value.replaceAll(String.raw`\n`, '\n');
   }
 
   get nodeEnv(): string {
@@ -87,7 +93,6 @@ export class ApiConfigService {
     return {
       entities,
       migrations,
-      keepConnectionAlive: !this.isTest,
       dropSchema: this.isTest,
       type: 'postgres',
       name: 'default',

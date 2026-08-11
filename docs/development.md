@@ -16,17 +16,18 @@
 
 Make sure you have the following installed:
 
-- [Node](https://nodejs.org/en/) (at least the latest LTS)
-- [Yarn](https://yarnpkg.com/lang/en/docs/install/) (at least 1.0)
+- [Node.js 24](https://nodejs.org/en/)
+- [Corepack](https://nodejs.org/api/corepack.html), which activates the repository-pinned Yarn 4 release
 
 ## Installation
 
 ```bash
-# Install dependencies from package.json
-yarn install
+# Enable Corepack and install the exact dependencies from yarn.lock
+corepack enable
+yarn install --immutable
 ```
 
-> Note: don't delete yarn.lock before installation, See more [in yarn docs](https://classic.yarnpkg.com/en/docs/yarn-lock/)
+> Note: don't delete `yarn.lock` before installation. See the [Yarn install documentation](https://yarnpkg.com/cli/install) for details.
 
 ### Database
 
@@ -121,19 +122,14 @@ yarn debug:dev
 
 ## Generators
 
-This project includes generators to speed up common development tasks. Commands include:
-
-> Note: Make sure you already have the nest-cli globally installed
+This project includes the Nest CLI locally to speed up common development tasks. Commands include:
 
 ```bash
-# Install nest-cli globally
-yarn global add @nestjs/cli
-
 # Generate a new service
-nest generate service users
+yarn nest generate service users
 
 # Generate a new class
-nest g class users
+yarn nest g class users
 
 ```
 > Note: if you love generators then you can find full list of command in official [Nest-cli Docs](https://docs.nestjs.com/cli/usages#generate-alias-g).

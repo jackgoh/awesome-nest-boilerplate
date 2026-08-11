@@ -7,12 +7,10 @@ import {
 import { Reflector } from '@nestjs/core';
 import { type ValidationError } from 'class-validator';
 import { type Response } from 'express';
-import _ from 'lodash';
+import snakeCase from 'lodash/snakeCase';
 
 @Catch(UnprocessableEntityException)
-export class HttpExceptionFilter
-  implements ExceptionFilter<UnprocessableEntityException>
-{
+export class HttpExceptionFilter implements ExceptionFilter<UnprocessableEntityException> {
   constructor(public reflector: Reflector) {}
 
   catch(exception: UnprocessableEntityException, host: ArgumentsHost): void {
@@ -31,7 +29,7 @@ export class HttpExceptionFilter
     for (const validationError of validationErrors) {
       const children = validationError.children;
 
-      if (children && !_.isEmpty(children)) {
+      if (children && children.length > 0) {
         this.validationFilter(children);
 
         return;
@@ -49,9 +47,8 @@ export class HttpExceptionFilter
         // convert default messages
         if (!constraint) {
           // convert error message to error.fields.{key} syntax for i18n translation
-          constraints[constraintKey] = `error.fields.${_.snakeCase(
-            constraintKey,
-          )}`;
+          constraints[constraintKey] =
+            `error.fields.${snakeCase(constraintKey)}`;
         }
       }
     }
