@@ -7,6 +7,14 @@ import { initializeTransactionalContext } from 'typeorm-transactional';
 import { AppModule } from '../src/app.module';
 import { UserEntity } from '../src/modules/user/user.entity';
 
+// Jest does not implement Node 24's synchronous require(esm) bridge.
+jest.mock('parse-duration', () => ({
+  default: () => 60,
+}));
+jest.mock('uuid', () => ({
+  v1: () => '00000000-0000-1000-8000-000000000000',
+}));
+
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
   let accessToken: string;

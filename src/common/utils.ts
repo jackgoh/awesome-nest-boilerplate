@@ -3,7 +3,7 @@ import { argon2id, hash as argon2Hash, verify as argon2Verify } from 'argon2';
 /**
  * generate hash from password or string
  * @param {string} password
- * @returns {string}
+ * @returns {Promise<string>}
  */
 export async function generateHash(password: string): Promise<string> {
   return argon2Hash(password, { type: argon2id });

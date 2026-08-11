@@ -8,6 +8,7 @@
       "ts-jest",
       {
         "tsconfig": {
+          "isolatedModules": true,
           "rootDir": ".",
           "types": ["node", "jest"]
         }

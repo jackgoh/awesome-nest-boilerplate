@@ -115,9 +115,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/client-s3@npm:^3.1106.0":
-  version: 3.1106.0
-  resolution: "@aws-sdk/client-s3@npm:3.1106.0"
+"@aws-sdk/client-s3@npm:^3.1107.0":
+  version: 3.1107.0
+  resolution: "@aws-sdk/client-s3@npm:3.1107.0"
   dependencies:
     "@aws-sdk/checksums": "npm:^3.1000.26"
     "@aws-sdk/core": "npm:^3.977.6"
@@ -130,7 +130,7 @@ __metadata:
     "@smithy/node-http-handler": "npm:^4.9.13"
     "@smithy/types": "npm:^4.16.1"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/5416261ca593f79888204269f759ee1c30ad8213239ccdee712138dbd8100c6b23c4a56e6cc4deffdf7fa0667ee26e95a97d28926c38daed04f65b021c31fae6
+  checksum: 10c0/eae0c02ea098952fa637be6979522b14cdc6224d75a117444e78ce99e7ea7d2fbc63114b6a99f19a1eca9a425350234cefc62604e088381a23c5ef05c62ebfb9
   languageName: node
   linkType: hard
 
@@ -4493,7 +4493,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "awesome-nest-boilerplate@workspace:."
   dependencies:
-    "@aws-sdk/client-s3": "npm:^3.1106.0"
+    "@aws-sdk/client-s3": "npm:^3.1107.0"
     "@handfish/hygen": "npm:^6.1.6"
     "@nestjs/cli": "npm:^11.0.24"
     "@nestjs/common": "npm:^11.1.29"
