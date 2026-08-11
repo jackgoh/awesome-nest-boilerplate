@@ -85,3 +85,6 @@ db-data
 
 # Local History
 .history
+
+# Isolated development worktrees
+.worktrees/
