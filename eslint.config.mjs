@@ -62,6 +62,7 @@ export default [
       'unicorn/no-null': 'off',
       'unicorn/no-static-only-class': 'off',
       'unicorn/prefer-module': 'off',
+      'unicorn/prefer-top-level-await': 'off',
       'unicorn/expiring-todo-comments': 'off',
       'sonarjs/no-duplicate-string': 'off',
       'import/no-unresolved': ['error', { ignore: ['^@hr-drone\\/*'] }],
