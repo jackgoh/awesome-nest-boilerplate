@@ -1,15 +1,15 @@
-version: '3'
+version: "3"
 services:
   awesome-nest-db:
-    image: postgres:16.8-alpine3.21
+    image: postgres:18.1-alpine3.22
     container_name: awesome-nest-db1
     restart: always
     environment:
       POSTGRES_PASSWORD: postgres
-      TZ: 'GMT'
-      PGTZ: 'GMT'
+      TZ: "GMT"
+      PGTZ: "GMT"
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - awesome-nest-db-vol:/var/lib/postgresql/data
       - type: bind
