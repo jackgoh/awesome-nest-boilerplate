@@ -1,7 +1,7 @@
 version: "3"
 services:
   awesome-nest-db:
-    image: postgres:18.1-alpine3.22
+    image: postgres:18.4-alpine
     container_name: awesome-nest-db2
     restart: always
     environment:
@@ -11,7 +11,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - awesome-nest-db-vol:/var/lib/postgresql/data
+      - awesome-nest-db-vol:/var/lib/postgresql
       - type: bind
         source: ./init-data.sh
         target: /docker-entrypoint-initdb.d/init-data.sh
