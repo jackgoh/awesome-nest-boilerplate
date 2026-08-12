@@ -1,8 +1,8 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import { createRequire } from 'node:module';
 
-const { v1: uuid } = createRequire(__filename)('uuid') as {
-  v1: () => string;
+const { v7: uuid } = createRequire(__filename)('uuid') as {
+  v7: () => string;
 };
 
 export class GeneratorProvider {

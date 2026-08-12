@@ -2,7 +2,7 @@ version: "3"
 services:
   awesome-nest-db:
     image: postgres:18.1-alpine3.22
-    container_name: awesome-nest-db1
+    container_name: awesome-nest-db2
     restart: always
     environment:
       POSTGRES_PASSWORD: postgres

@@ -17,10 +17,7 @@ export class UserController {
   @Get()
   @Auth([RoleType.USER])
   @HttpCode(HttpStatus.OK)
-  @ApiPageOkResponse({
-    description: 'Get users list',
-    type: PageDto,
-  })
+  @ApiPageOkResponse({ description: 'Get users list', type: PageDto })
   getUsers(
     @Query()
     pageOptionsDto: UsersPageOptionsDto,
@@ -38,11 +35,7 @@ export class UserController {
   })
   async getUser(@UUIDParam('id') userId: Uuid): Promise<UserDto> {
     const foundData = await this.userService.findOneOrThrowException(
-      {
-        findData: {
-          id: userId,
-        },
-      },
+      { findData: { id: userId } },
       new UserNotFoundException(),
     );
 
