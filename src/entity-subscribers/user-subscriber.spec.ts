@@ -50,4 +50,55 @@ describe('UserSubscriber', () => {
 
     expect(entity.password).toBe(existingHash);
   });
+
+  it('does nothing for a partial update without a password', async () => {
+    const entity: Partial<UserEntity> = { firstName: 'Updated' };
+
+    await expect(
+      subscriber.beforeUpdate({
+        entity,
+        databaseEntity: { password: 'previous-hash' },
+      } as unknown as UpdateEvent<UserEntity>),
+    ).resolves.toBeUndefined();
+
+    expect(entity).toEqual({ firstName: 'Updated' });
+  });
+
+  it('does nothing when an update has no entity or database snapshot', async () => {
+    await expect(
+      subscriber.beforeUpdate({} as UpdateEvent<UserEntity>),
+    ).resolves.toBeUndefined();
+  });
+
+  it('hashes a supplied password without a database snapshot', async () => {
+    const entity: Partial<UserEntity> = { password: 'changed-password' };
+
+    await subscriber.beforeUpdate({
+      entity,
+    } as UpdateEvent<UserEntity>);
+
+    expect(entity.password).toMatch(/^\$argon2id\$/);
+    await expect(
+      validateHash('changed-password', entity.password),
+    ).resolves.toBe(true);
+  });
+
+  it('hashes an empty password before insert', async () => {
+    const entity = { password: '' } as UserEntity;
+
+    await subscriber.beforeInsert({ entity } as InsertEvent<UserEntity>);
+
+    expect(entity.password).toMatch(/^\$argon2id\$/);
+  });
+
+  it('hashes an empty password supplied in an update', async () => {
+    const entity: Partial<UserEntity> = { password: '' };
+
+    await subscriber.beforeUpdate({
+      entity,
+      databaseEntity: { password: 'previous-hash' },
+    } as unknown as UpdateEvent<UserEntity>);
+
+    expect(entity.password).toMatch(/^\$argon2id\$/);
+  });
 });
