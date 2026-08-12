@@ -1,30 +1,28 @@
-FROM node:lts AS dist
-COPY package.json yarn.lock ./
+FROM node:24 AS build
 
-RUN yarn install
+WORKDIR /usr/src/app
+
+RUN corepack enable
+
+COPY package.json yarn.lock .yarnrc.yml ./
+
+RUN yarn install --immutable
 
 COPY . ./
 
 RUN yarn build:prod
+RUN yarn workspaces focus --all --production
 
-FROM node:lts AS node_modules
-COPY package.json yarn.lock ./
-
-RUN yarn install --prod
-
-FROM node:lts
+FROM node:24
 
 ARG PORT=3000
 
-RUN mkdir -p /usr/src/app
-
 WORKDIR /usr/src/app
 
-COPY --from=dist dist /usr/src/app/dist
-COPY --from=node_modules node_modules /usr/src/app/node_modules
-
-COPY . /usr/src/app
+COPY --from=build /usr/src/app/package.json ./package.json
+COPY --from=build /usr/src/app/dist ./dist
+COPY --from=build /usr/src/app/node_modules ./node_modules
 
 EXPOSE $PORT
 
-CMD [ "yarn", "start:prod" ]
+CMD ["node", "dist/main.js"]

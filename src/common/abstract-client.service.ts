@@ -8,8 +8,8 @@ import { type PageDto } from './dto/page.dto';
 import { type PageMetaDto } from './dto/page-meta.dto';
 
 /**
- * Fixme: This class designed to use with @nestjs/microservices by extending and creating a new class.
- * TODO: Create Implementation and usage of it
+ * This class is designed to be extended when using @nestjs/microservices.
+ * Concrete services provide the implementation and usage details.
  */
 export class AbstractClientService<ActionType> {
   constructor(private client: ClientProxy) {}

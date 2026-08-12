@@ -1,6 +1,8 @@
-/* eslint-disable unicorn/no-null */
 import { applyDecorators } from '@nestjs/common';
-import { ApiProperty, type ApiPropertyOptions } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  type ApiPropertyOptions as SwaggerApiPropertyOptions,
+} from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -38,6 +40,11 @@ import {
   IsTmpKey as IsTemporaryKey,
   IsUndefinable,
 } from './validator.decorators';
+
+type ApiPropertyOptions = Extract<
+  SwaggerApiPropertyOptions,
+  { required?: boolean }
+>;
 
 interface IFieldOptions {
   each?: boolean;
@@ -246,13 +253,12 @@ export function TmpKeyFieldOptional(
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
 export function EnumField<TEnum extends object>(
   getEnum: () => TEnum,
   options: Omit<ApiPropertyOptions, 'type' | 'enum' | 'enumName' | 'isArray'> &
     IEnumFieldOptions = {},
 ): PropertyDecorator {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types
   const enumValue = getEnum();
   const decorators = [IsEnum(enumValue, { each: options.each })];
 
@@ -275,12 +281,10 @@ export function EnumField<TEnum extends object>(
   return applyDecorators(...decorators);
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 export function ClassField<TClass extends Constructor>(
   getClass: () => TClass,
   options: Omit<ApiPropertyOptions, 'type'> & IClassFieldOptions = {},
 ): PropertyDecorator {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const classValue = getClass();
 
   const decorators = [
@@ -314,7 +318,7 @@ export function ClassField<TClass extends Constructor>(
   return applyDecorators(...decorators);
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
 export function EnumFieldOptional<TEnum extends object>(
   getEnum: () => TEnum,
   options: Omit<ApiPropertyOptions, 'type' | 'required' | 'enum' | 'enumName'> &
@@ -326,7 +330,6 @@ export function EnumFieldOptional<TEnum extends object>(
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 export function ClassFieldOptional<TClass extends Constructor>(
   getClass: () => TClass,
   options: Omit<ApiPropertyOptions, 'type' | 'required'> &

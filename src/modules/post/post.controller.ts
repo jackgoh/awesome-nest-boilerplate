@@ -63,11 +63,7 @@ export class PostController {
   @ApiOkResponse({ type: PostDto })
   async getSinglePost(@UUIDParam('id') id: Uuid): Promise<PostDto> {
     const entity = await this.postService.findOneOrThrowException(
-      {
-        findData: {
-          id,
-        },
-      },
+      { findData: { id } },
       new PostNotFoundException(),
     );
 
@@ -82,11 +78,7 @@ export class PostController {
     @Body() updatePostDto: UpdatePostDto,
   ): Promise<PostDto> {
     const foundPost = await this.postService.findOneOrThrowException(
-      {
-        findData: {
-          id,
-        },
-      },
+      { findData: { id } },
       new PostNotFoundException(),
     );
 
@@ -103,11 +95,7 @@ export class PostController {
   @ApiAcceptedResponse()
   async deletePost(@UUIDParam('id') id: Uuid): Promise<void> {
     await this.postService.findOneOrThrowException(
-      {
-        findData: {
-          id,
-        },
-      },
+      { findData: { id } },
       new PostNotFoundException(),
     );
 

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import {
-  FindOptionsRelations,
-  FindOptionsWhere,
-  ObjectLiteral,
+  type FindOptionsRelations,
+  type FindOptionsWhere,
+  type ObjectLiteral,
   Repository,
 } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
@@ -119,6 +119,8 @@ export class AbstractService<Entity extends AbstractEntity> {
 
     const [items, pageMetaDto] = await query.paginate(entityPageOptionsDto);
 
+    // sonarjs/argument-type misreads the extension method's explicit `this` parameter.
+    // eslint-disable-next-line sonarjs/argument-type
     return items.toPageDto(pageMetaDto);
   }
 

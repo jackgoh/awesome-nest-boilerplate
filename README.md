@@ -1,9 +1,9 @@
 # Nestjs Awesome Boilerplate 
 
 ## Prerequisite
-- [Nodejs 18 above](https://github.com/nvm-sh/nvm)
+- [Node.js 24](https://github.com/nvm-sh/nvm)
 - [Docker + Docker Compose](https://github.com/docker/docker-install)
-- [Yarn] `npm i -g yarn`
+- [Corepack](https://nodejs.org/api/corepack.html) for the repository-pinned Yarn 4 release
 
 ## Getting started
 
@@ -17,8 +17,9 @@ cd your-project-name
 # 3. Create Environment variables file.
 cp .env.example .env
 
-# 4. Install dependencies. (Make sure yarn is installed: https://yarnpkg.com/lang/en/docs/install)
-yarn
+# 4. Enable Corepack and install the exact locked dependencies.
+corepack enable
+yarn install --immutable
 
 # 5. Run DB
 docker compose up

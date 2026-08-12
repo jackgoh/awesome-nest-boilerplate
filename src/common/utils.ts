@@ -1,12 +1,12 @@
-import bcrypt from 'bcrypt';
+import { argon2id, hash as argon2Hash, verify as argon2Verify } from 'argon2';
 
 /**
  * generate hash from password or string
  * @param {string} password
- * @returns {string}
+ * @returns {Promise<string>}
  */
-export function generateHash(password: string): string {
-  return bcrypt.hashSync(password, 10);
+export async function generateHash(password: string): Promise<string> {
+  return argon2Hash(password, { type: argon2id });
 }
 
 /**
@@ -15,15 +15,19 @@ export function generateHash(password: string): string {
  * @param {string} hash
  * @returns {Promise<boolean>}
  */
-export function validateHash(
+export async function validateHash(
   password: string | undefined,
   hash: string | undefined | null,
 ): Promise<boolean> {
   if (!password || !hash) {
-    return Promise.resolve(false);
+    return false;
   }
 
-  return bcrypt.compare(password, hash);
+  try {
+    return await argon2Verify(hash, password);
+  } catch {
+    return false;
+  }
 }
 
 export function getVariableName<TResult>(

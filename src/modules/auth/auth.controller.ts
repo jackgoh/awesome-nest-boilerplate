@@ -61,9 +61,7 @@ export class AuthController {
       file,
     );
 
-    return createdUser.toDto({
-      isActive: true,
-    });
+    return createdUser.toDto({ isActive: true });
   }
 
   @Version('1')

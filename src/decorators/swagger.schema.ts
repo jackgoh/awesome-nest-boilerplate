@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-types,@typescript-eslint/no-unsafe-argument */
 import { applyDecorators, type Type, UseInterceptors } from '@nestjs/common';
 import {
   PARAMTYPES_METADATA,
@@ -8,57 +7,57 @@ import { RouteParamtypes } from '@nestjs/common/enums/route-paramtypes.enum';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiBody,
+  type ApiBodyOptions,
   ApiConsumes,
   ApiExtraModels,
   getSchemaPath,
 } from '@nestjs/swagger';
-import {
-  type ReferenceObject,
-  type SchemaObject,
-} from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import { reverseObjectKeys } from '@nestjs/swagger/dist/utils/reverse-object-keys.util';
-import _ from 'lodash';
+import { type Many } from 'lodash';
+import castArray from 'lodash/castArray';
 
 import { type IApiFile } from '../interfaces';
 
-function explore(instance: Object, propertyKey: string | symbol) {
+interface IRouteArgumentMetadata {
+  index: number;
+}
+
+type SwaggerSchema = Extract<ApiBodyOptions, { schema: unknown }>['schema'];
+type MetadataTarget = Parameters<typeof Reflect.getMetadata>[1];
+
+function explore(instance: MetadataTarget, propertyKey: string | symbol) {
   const types: Array<Type<unknown>> = Reflect.getMetadata(
     PARAMTYPES_METADATA,
     instance,
     propertyKey,
   );
-  const routeArgsMetadata =
-    Reflect.getMetadata(
-      ROUTE_ARGS_METADATA,
-      instance.constructor,
-      propertyKey,
-    ) || {};
+  const routeArgsMetadata = (Reflect.getMetadata(
+    ROUTE_ARGS_METADATA,
+    instance.constructor,
+    propertyKey,
+  ) || {}) as Record<string, IRouteArgumentMetadata>;
+  const routeArgumentKeys = Object.keys(routeArgsMetadata);
+  let remainingKeys = routeArgumentKeys.length;
 
-  const parametersWithType = _.mapValues(
-    reverseObjectKeys(routeArgsMetadata),
-    (param) => ({
-      type: types[param.index],
-      name: param.data,
-      required: true,
-    }),
-  );
-
-  for (const [key, value] of Object.entries(parametersWithType)) {
+  while (remainingKeys > 0) {
+    remainingKeys -= 1;
+    const key = routeArgumentKeys[remainingKeys];
     const keyPair = key.split(':');
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (Number(keyPair[0]) === RouteParamtypes.BODY) {
-      return value.type;
+      return types[routeArgsMetadata[key].index];
     }
   }
 }
 
-function RegisterModels(): MethodDecorator {
-  return (target, propertyKey, descriptor: PropertyDescriptor) => {
-    const body = explore(target, propertyKey);
+const registerModels: MethodDecorator = (target, propertyKey, descriptor) => {
+  const body = explore(target, propertyKey);
 
-    return body && ApiExtraModels(body)(target, propertyKey, descriptor);
-  };
+  return body && ApiExtraModels(body)(target, propertyKey, descriptor);
+};
+
+function RegisterModels(): MethodDecorator {
+  return registerModels;
 }
 
 function ApiFileDecorator(
@@ -67,11 +66,11 @@ function ApiFileDecorator(
 ): MethodDecorator {
   return (target, propertyKey, descriptor: PropertyDescriptor) => {
     const { isRequired = false } = options;
-    const fileSchema: SchemaObject = {
+    const fileSchema: SwaggerSchema = {
       type: 'string',
       format: 'binary',
     };
-    const properties: Record<string, SchemaObject | ReferenceObject> = {};
+    const properties: Record<string, SwaggerSchema> = {};
 
     for (const file of files) {
       properties[file.name] = file.isArray
@@ -82,7 +81,7 @@ function ApiFileDecorator(
         : fileSchema;
     }
 
-    let schema: SchemaObject = {
+    let schema: SwaggerSchema = {
       properties,
       type: 'object',
     };
@@ -107,10 +106,10 @@ function ApiFileDecorator(
 }
 
 export function ApiFile(
-  files: _.Many<IApiFile>,
+  files: Many<IApiFile>,
   options: Partial<{ isRequired: boolean }> = {},
 ): MethodDecorator {
-  const filesArray = _.castArray(files);
+  const filesArray = castArray(files);
   const apiFileInterceptors = filesArray.map((file) =>
     file.isArray
       ? UseInterceptors(FilesInterceptor(file.name))

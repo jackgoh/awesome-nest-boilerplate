@@ -27,7 +27,7 @@ export function IsPassword(
 
 export function IsPhoneNumber(
   validationOptions?: ValidationOptions & {
-    region?: Parameters<typeof isPhoneNumber>[0];
+    region?: NonNullable<Parameters<typeof isPhoneNumber>[0]>;
   },
 ): PropertyDecorator {
   return isPhoneNumber(validationOptions?.region, {

@@ -1,4 +1,7 @@
 .git
+.env
+.yarn/
+*.tsbuildinfo
 dist
 node_modules
 db-data

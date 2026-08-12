@@ -1,5 +1,8 @@
+import { createRequire } from 'node:module';
+
 import { Injectable } from '@nestjs/common';
-import { v1 as uuid } from 'uuid';
+
+const { v7: uuid } = createRequire(__filename)('uuid') as { v7: () => string };
 
 @Injectable()
 export class GeneratorService {

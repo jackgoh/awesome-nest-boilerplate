@@ -17,9 +17,10 @@ export class CreatePostCommand implements ICommand {
 }
 
 @CommandHandler(CreatePostCommand)
-export class CreatePostHandler
-  implements ICommandHandler<CreatePostCommand, PostEntity>
-{
+export class CreatePostHandler implements ICommandHandler<
+  CreatePostCommand,
+  PostEntity
+> {
   constructor(
     @InjectRepository(PostEntity)
     private postRepository: Repository<PostEntity>,

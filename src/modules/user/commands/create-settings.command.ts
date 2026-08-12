@@ -17,9 +17,10 @@ export class CreateSettingsCommand implements ICommand {
 }
 
 @CommandHandler(CreateSettingsCommand)
-export class CreateSettingsHandler
-  implements ICommandHandler<CreateSettingsCommand, UserSettingsEntity>
-{
+export class CreateSettingsHandler implements ICommandHandler<
+  CreateSettingsCommand,
+  UserSettingsEntity
+> {
   constructor(
     @InjectRepository(UserSettingsEntity)
     private userSettingsRepository: Repository<UserSettingsEntity>,
